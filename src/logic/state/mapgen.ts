@@ -40,6 +40,7 @@ export interface Tile {
   terrain: TerrainType;
   feature: FeatureType;
   resource: ResourceDef | null;
+  improvement: string | null;
   isRiver: boolean;
   elevation: number; // [0,1]
   moisture: number; // [0,1]
@@ -165,6 +166,7 @@ export function generateMap(bounds: MapBounds, rng: Rng): GameMap {
       terrain,
       feature: null,
       resource: null,
+      improvement: null,
       isRiver: false,
       elevation: elev,
       moisture: moist,
