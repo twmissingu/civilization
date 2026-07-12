@@ -34,8 +34,8 @@ export function changeGovernment(player: PlayerState, gov: GovernmentId): void {
   const g = GOVERNMENTS[gov];
   if (!g) return;
   player.government = gov;
-  const slots = g.militarySlots + g.economicSlots + g.wildcardSlots;
-  // 重置槽位（清空旧卡）
+  // 希腊「柏拉图理想国」：万能槽 +1
+  const slots = g.militarySlots + g.economicSlots + g.wildcardSlots + (player.civId === 'greece' ? 1 : 0);
   player.policySlots = new Array(slots).fill(null);
 }
 

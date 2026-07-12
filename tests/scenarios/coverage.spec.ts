@@ -249,6 +249,29 @@ describe('tech/civic 边界', () => {
   });
 });
 
+describe('文明能力', () => {
+  it('希腊万能槽 +1', () => {
+    const state = makeState();
+    const p = state.players[0];
+    p.civId = 'greece';
+    p.researchedCivics.push('state_workforce');
+    changeGovernment(p, 'autocracy'); // autocracy: 1军+1经+1万能=3，希腊+1=4
+    expect(p.policySlots).toHaveLength(4);
+  });
+  it('中国奇观加成', () => {
+    const state = makeState();
+    const settler = state.players[0].units.find((u) => u.type === 'settler')!;
+    const { state: s } = applyCommand(state, { kind: 'foundCity', unitId: settler.id, name: 'R' });
+    const city = s.players[0].cities[0];
+    s.players[0].civId = 'china';
+    city.wonders.push({ id: 'great_library', tile: city.tile });
+    const yNoWonder = cityYield(s, { ...city, wonders: [] });
+    const yWonder = cityYield(s, city);
+    expect(yWonder.science).toBeGreaterThan(yNoWonder.science);
+    expect(yWonder.culture).toBeGreaterThan(yNoWonder.culture);
+  });
+});
+
 describe('turnResolution 分支', () => {
   it('resolveTurn 推进研究与市政', () => {
     const state = makeState();

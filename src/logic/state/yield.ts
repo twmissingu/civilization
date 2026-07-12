@@ -40,6 +40,10 @@ export function cityYield(state: GameState, city: CityState): Yield {
   const owner = state.players.find((p) => p.id === city.ownerId);
   if (owner) {
     if (owner.civId === 'rome') y = addYield(y, { production: 1 });
+    if (owner.civId === 'china') {
+      const w = city.wonders.length;
+      y = addYield(y, { science: w, culture: w }); // 天命：每个奇观 +1 科技 +1 文化
+    }
     if (owner.government === 'chiefdom') y = addYield(y, { production: 1 });
     if (owner.government === 'classical_republic') y = addYield(y, { production: 1, culture: 1 });
     if (owner.government === 'monarchy' || owner.government === 'merchant_republic') y = addYield(y, { gold: 2 });
