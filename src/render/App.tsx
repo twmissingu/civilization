@@ -1,6 +1,6 @@
 // 主界面：资源条 + 地图 + 侧栏（研究/市政/单位/城市）
 import { useGame } from './store';
-import { HexMap } from './HexMap';
+import { PixiMap } from './PixiMap';
 import { currentPlayer, findUnit, findCity } from '../logic/state/commands';
 import { playerYield } from '../logic/state/yield';
 import { canResearch } from '../logic/state/tech';
@@ -50,8 +50,8 @@ export function App() {
       )}
 
       <div style={{ display: 'flex', flex: 1, overflow: 'hidden' }}>
-        <div style={{ flex: 1, overflow: 'auto', padding: 8 }}>
-          <HexMap />
+        <div style={{ flex: 1, overflow: 'hidden', padding: 0 }}>
+          <PixiMap />
         </div>
         <div style={{ width: 270, padding: 10, background: '#22223a', overflowY: 'auto', fontSize: 12 }}>
           <div style={{ marginBottom: 10 }}>
