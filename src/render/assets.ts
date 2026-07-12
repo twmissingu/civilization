@@ -149,3 +149,46 @@ export function portraitAssetUrl(civId: string): string {
   };
   return `/assets/portraits/${map[civId] ?? 'rome_caesar'}.png`;
 }
+
+const circleCache = new Map<string, Texture>();
+
+/** 从图片 URL 生成圆形遮罩纹理（单位 token） */
+export async function makeCircleTextureFromImage(url: string, size: number): Promise<Texture> {
+  const key = `${url}-${size}`;
+  const cached = circleCache.get(key);
+  if (cached) return cached;
+  const img = new Image();
+  img.src = url;
+  await new Promise<void>((resolve, reject) => {
+    img.onload = () => resolve();
+    img.onerror = () => reject(new Error(`load fail: ${url}`));
+  });
+  const canvas = document.createElement('canvas');
+  const s = Math.ceil(size * 2) + 2;
+  canvas.width = s;
+  canvas.height = s;
+  const ctx = canvas.getContext('2d')!;
+  const cx = s / 2;
+  const cy = s / 2;
+  ctx.beginPath();
+  ctx.arc(cx, cy, size, 0, Math.PI * 2);
+  ctx.closePath();
+  ctx.clip();
+  ctx.drawImage(img, cx - size, cy - size, size * 2, size * 2);
+  ctx.strokeStyle = 'rgba(255,255,255,0.85)';
+  ctx.lineWidth = 1.5;
+  ctx.stroke();
+  const tex = Texture.from(canvas);
+  circleCache.set(key, tex);
+  return tex;
+}
+
+/** 区域 -> public 资产 URL */
+export function districtAssetUrl(d: string): string {
+  return `/assets/districts/${d}.png`;
+}
+
+/** 奇观 -> public 资产 URL */
+export function wonderAssetUrl(id: string): string {
+  return `/assets/wonders/${id}.png`;
+}

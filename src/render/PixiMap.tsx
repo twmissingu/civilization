@@ -6,7 +6,7 @@ import { hexToPixel, hexNeighbors, inBounds } from '../logic/hex';
 import { findUnit, currentPlayer } from '../logic/state/commands';
 import { cityAt } from '../logic/state/combat';
 import { getTile } from '../logic/state/mapgen';
-import { makeHexTexture, TERRAIN_COLOR, makeHexTextureFromImage, terrainAssetUrl } from './assets';
+import { makeHexTexture, TERRAIN_COLOR, makeHexTextureFromImage, terrainAssetUrl, makeCircleTextureFromImage, unitAssetUrl, districtAssetUrl } from './assets';
 import type { HexCoord } from '../types';
 
 const UNIT_MARK: Record<string, string> = {
@@ -30,6 +30,8 @@ export function PixiMap() {
   const hostRef = useRef<HTMLDivElement>(null);
   const appRef = useRef<Application | null>(null);
   const terrainTexRef = useRef<Map<string, Texture>>(new Map());
+  const unitTexRef = useRef<Map<string, Texture>>(new Map());
+  const districtTexRef = useRef<Map<string, Texture>>(new Map());
   const state = useGame((s) => s.state);
   const selectedUnitId = useGame((s) => s.selectedUnitId);
   const command = useGame((s) => s.command);
@@ -57,16 +59,13 @@ export function PixiMap() {
         draw();
         // 预加载 AI 地形纹理
         const terrains = ['grassland', 'plains', 'hills', 'desert', 'tundra', 'snow', 'coast', 'ocean', 'mountain'];
-        Promise.allSettled(
-          terrains.map(async (t) => {
-            try {
-              const tex = await makeHexTextureFromImage(terrainAssetUrl(t), DISP);
-              terrainTexRef.current.set(t, tex);
-            } catch {
-              /* 回退到程序化纹理 */
-            }
-          }),
-        ).then(() => draw());
+        const unitTypes = ['warrior', 'archer', 'settler', 'builder', 'swordsman', 'cavalry', 'slinger', 'knight', 'trireme', 'quadrireme', 'musketman', 'cannon', 'siege_tower'];
+        const districtTypes = ['campus', 'commercial', 'holy', 'industrial', 'encampment', 'theater', 'harbor'];
+        Promise.allSettled([
+          ...terrains.map(async (t) => { try { terrainTexRef.current.set(t, await makeHexTextureFromImage(terrainAssetUrl(t), DISP)); } catch { /* fallback */ } }),
+          ...unitTypes.map(async (u) => { try { unitTexRef.current.set(u, await makeCircleTextureFromImage(unitAssetUrl(u), DISP * 0.85)); } catch { /* fallback */ } }),
+          ...districtTypes.map(async (d) => { try { districtTexRef.current.set(d, await makeCircleTextureFromImage(districtAssetUrl(d), DISP * 0.65)); } catch { /* fallback */ } }),
+        ]).then(() => draw());
       });
     return () => {
       destroyed = true;
@@ -159,14 +158,40 @@ export function PixiMap() {
       }
       const unit = state.players.flatMap((pp) => pp.units).find((u) => u.tile.q === t.coord.q && u.tile.r === t.coord.r);
       if (unit) {
-        const txt = new Text({
-          text: UNIT_MARK[unit.type] ?? '?',
-          style: { fill: unit.ownerId === player.id ? '#ffffff' : '#ff8888', fontSize: 12, fontFamily: 'monospace' },
-        });
-        txt.anchor.set(0.5);
-        txt.x = cx;
-        txt.y = cy + 1;
-        layer.addChild(txt);
+        const uTex = unitTexRef.current.get(unit.type);
+        if (uTex) {
+          const us = new Sprite(uTex);
+          us.anchor.set(0.5);
+          us.x = cx;
+          us.y = cy;
+          us.tint = unit.ownerId === player.id ? 0xffffff : 0xff6666;
+          layer.addChild(us);
+        } else {
+          const txt = new Text({
+            text: UNIT_MARK[unit.type] ?? '?',
+            style: { fill: unit.ownerId === player.id ? '#ffffff' : '#ff8888', fontSize: 12, fontFamily: 'monospace' },
+          });
+          txt.anchor.set(0.5);
+          txt.x = cx;
+          txt.y = cy + 1;
+          layer.addChild(txt);
+        }
+      }
+    }
+
+    // 区域图标叠加
+    for (const p of state.players) {
+      for (const c of p.cities) {
+        for (const d of c.districts) {
+          const dTex = districtTexRef.current.get(d.type);
+          if (!dTex) continue;
+          const dp = hexToPixel(d.tile, DISP);
+          const ds = new Sprite(dTex);
+          ds.anchor.set(0.5);
+          ds.x = dp.x + DISP;
+          ds.y = dp.y + DISP;
+          layer.addChild(ds);
+        }
       }
     }
   }
