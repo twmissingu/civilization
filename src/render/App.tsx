@@ -7,8 +7,18 @@ import { canResearch } from '../logic/state/tech';
 import { canResearchCivic } from '../logic/state/civic';
 import { TECHS, CIVICS, UNITS, techCost, CIVILIZATIONS } from '../gamedata';
 
+const EVENT_LABELS: Record<string, string> = {
+  CityFounded: '🏙 建城', CombatResolved: '⚔ 战斗', CityAttacked: '⚔ 攻城',
+  WonderBuilt: '🏛 奇观建成', TechCompleted: '🔬 科技完成', CivicCompleted: '📜 市政完成',
+  WarDeclared: '⚔ 宣战', PeaceDeclared: '🕊 求和', GovernmentChanged: '🏛 政体更迭',
+  GameWon: '🏆 胜利', UnitTrained: '⚔ 单位训练', DistrictPlaced: '🏫 区域放置',
+};
+function eventLabel(kind: string): string {
+  return EVENT_LABELS[kind] ?? kind;
+}
+
 export function App() {
-  const { state, selectedUnitId, selectedCityId, command, endTurn, newGame, save, load, message } = useGame();
+  const { state, selectedUnitId, selectedCityId, command, endTurn, newGame, save, load, message, eventLog } = useGame();
   const player = currentPlayer(state);
   const y = playerYield(state, player);
   const civ = CIVILIZATIONS[player.civId];
@@ -27,7 +37,7 @@ export function App() {
   const item: React.CSSProperties = { cursor: 'pointer', padding: '2px 4px' };
 
   return (
-    <div style={{ fontFamily: 'monospace', height: '100vh', display: 'flex', flexDirection: 'column', background: '#1a1a2e', color: '#eee' }}>
+    <div style={{ fontFamily: 'monospace', height: '100vh', display: 'flex', flexDirection: 'column', background: '#1a1a2e', color: '#eee', position: 'relative' }}>
       <div style={bar}>
         <b>{civ?.name ?? player.civId}</b>
         <span>第 {state.turn} 回合</span>
@@ -48,6 +58,17 @@ export function App() {
           🏆 游戏结束 - 胜者：{state.winner}（{state.victoryType}）
         </div>
       )}
+
+      {eventLog.length > 0 && state.status === 'active' && (
+        <div style={{ position: 'absolute', right: 290, top: 50, display: 'flex', flexDirection: 'column', gap: 4, pointerEvents: 'none' }}>
+          {eventLog.slice(-4).map((e, i) => (
+            <div key={`${e}-${i}`} style={{ padding: '3px 8px', background: 'rgba(0,0,0,0.6)', color: '#fc8', borderRadius: 3, fontSize: 11, animation: 'fadein 0.3s' }}>
+              {eventLabel(e)}
+            </div>
+          ))}
+        </div>
+      )}
+      <style>{`@keyframes fadein { from { opacity: 0; transform: translateY(-4px) } to { opacity: 1 } }`}</style>
 
       <div style={{ display: 'flex', flex: 1, overflow: 'hidden' }}>
         <div style={{ flex: 1, overflow: 'hidden', padding: 0 }}>

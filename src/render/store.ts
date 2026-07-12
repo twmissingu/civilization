@@ -24,6 +24,7 @@ interface GameStore {
   selectedUnitId: string | null;
   selectedCityId: string | null;
   message: string;
+  eventLog: string[];
   command: (cmd: GameCommand) => void;
   endTurn: () => void;
   selectUnit: (id: string | null) => void;
@@ -38,6 +39,7 @@ export const useGame = create<GameStore>((set, get) => ({
   selectedUnitId: null,
   selectedCityId: null,
   message: '',
+  eventLog: [],
   command: (cmd) => {
     const { state } = get();
     const { state: s2, events } = applyCommand(state, cmd);
@@ -45,7 +47,9 @@ export const useGame = create<GameStore>((set, get) => ({
       set({ message: '无效操作' });
       return;
     }
-    set({ state: s2, message: events.length > 0 ? events[events.length - 1].kind : '' });
+    const newEvents = events.map((e) => e.kind);
+    const log = [...get().eventLog, ...newEvents].slice(-6);
+    set({ state: s2, eventLog: log, message: newEvents.length > 0 ? newEvents[newEvents.length - 1] : '' });
     if (s2.status === 'finished') set({ message: `胜利：${s2.victoryType}` });
   },
   endTurn: () => {
