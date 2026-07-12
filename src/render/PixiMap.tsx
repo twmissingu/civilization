@@ -1,17 +1,13 @@
 // PixiJS 六边形地图渲染器（pointy-top）
 import { useEffect, useRef } from 'react';
-import { Application, Container, Graphics, Text, Polygon } from 'pixi.js';
+import { Application, Container, Graphics, Text, Polygon, Sprite } from 'pixi.js';
 import { useGame } from './store';
 import { hexToPixel, hexNeighbors, inBounds } from '../logic/hex';
 import { findUnit, currentPlayer } from '../logic/state/commands';
 import { cityAt } from '../logic/state/combat';
 import { getTile } from '../logic/state/mapgen';
+import { makeHexTexture, TERRAIN_COLOR } from './assets';
 import type { HexCoord } from '../types';
-
-const TERRAIN_COLORS: Record<string, number> = {
-  grassland: 0x7ba05b, plains: 0xc4b878, desert: 0xe0c880, tundra: 0xa8b8a0,
-  snow: 0xe8e8f0, hills: 0x9a8868, mountain: 0x808078, coast: 0x5c9ead, ocean: 0x3a6b8c,
-};
 
 const UNIT_MARK: Record<string, string> = {
   settler: '⌂', builder: '⚒', warrior: '⚔', archer: '弓', slinger: '石',
@@ -127,14 +123,20 @@ export function PixiMap() {
       const cy = p.y + DISP;
       const isSel = selectedUnit && selectedUnit.tile.q === t.coord.q && selectedUnit.tile.r === t.coord.r;
       const reach = isReachable(t.coord);
-      const g = new Graphics();
-      g.poly(hexPolyPoints(cx, cy, DISP))
-        .fill(TERRAIN_COLORS[t.terrain] ?? 0x444444)
-        .stroke({ width: isSel || reach ? 2 : 0.5, color: isSel ? 0xffffff : reach ? 0xffff00 : 0x222222 });
-      g.eventMode = 'static';
-      g.hitArea = new Polygon(hexPolyPoints(cx, cy, DISP));
-      g.on('pointertap', () => onTile(t.coord));
-      layer.addChild(g);
+      const tex = makeHexTexture(TERRAIN_COLOR[t.terrain] ?? 0x444444, DISP);
+      const sprite = new Sprite(tex);
+      sprite.anchor.set(0.5);
+      sprite.x = cx;
+      sprite.y = cy;
+      sprite.eventMode = 'static';
+      sprite.hitArea = new Polygon(hexPolyPoints(cx, cy, DISP));
+      sprite.on('pointertap', () => onTile(t.coord));
+      layer.addChild(sprite);
+      if (isSel || reach) {
+        const stroke = new Graphics();
+        stroke.poly(hexPolyPoints(cx, cy, DISP)).stroke({ width: 2, color: isSel ? 0xffffff : 0xffff00 });
+        layer.addChild(stroke);
+      }
 
       const city = cityAt(state, t.coord);
       if (city) {
