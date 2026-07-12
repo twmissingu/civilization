@@ -77,6 +77,7 @@ export interface PlayerState {
   buildersBuilt: number;
   settlersBuilt: number;
   districtsBuilt: number;
+  era: string;
 }
 
 export interface GameEvent {

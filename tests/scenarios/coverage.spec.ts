@@ -8,7 +8,7 @@ import { canChangeGovernment, changeGovernment, canSwitchPolicy, canResearchCivi
 import { resolveTurn } from '../../src/logic/state/turnResolution';
 import { tileYield, cityYield } from '../../src/logic/state/yield';
 import { moveUnit, isBlocked } from '../../src/logic/state/unitMove';
-import { advanceResearch, canResearch } from '../../src/logic/state/tech';
+import { advanceResearch, canResearch, computeEra } from '../../src/logic/state/tech';
 import { getTile } from '../../src/logic/state/mapgen';
 import { hexNeighbors, hexEquals } from '../../src/logic/hex';
 import type { GameState, GameConfig, UnitState, CityState } from '../../src/logic/state/types';
@@ -269,6 +269,22 @@ describe('文明能力', () => {
     const yWonder = cityYield(s, city);
     expect(yWonder.science).toBeGreaterThan(yNoWonder.science);
     expect(yWonder.culture).toBeGreaterThan(yNoWonder.culture);
+  });
+  it('computeEra 计算时代', () => {
+    expect(computeEra([])).toBe('ancient');
+    expect(computeEra(['iron_working'])).toBe('classical');
+    expect(computeEra(['education'])).toBe('medieval');
+  });
+  it('中国朝代更替：时代进阶给在建研究加进度', () => {
+    const state = makeState();
+    const p = state.players[0];
+    p.civId = 'china';
+    p.era = 'ancient';
+    p.researchedTechs.push('iron_working');
+    p.currentResearch = { techId: 'sailing', progress: 0 };
+    resolveTurn(state);
+    expect(p.era).toBe('classical');
+    expect(p.currentResearch!.progress).toBeGreaterThan(0);
   });
 });
 

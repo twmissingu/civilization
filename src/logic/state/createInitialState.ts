@@ -86,6 +86,7 @@ export function createInitialState(seed: number, config: GameConfig): GameState 
       buildersBuilt: 0,
       settlersBuilt: 0,
       districtsBuilt: 0,
+      era: 'ancient',
     };
   });
 

@@ -2,6 +2,20 @@
 import type { PlayerState } from './types';
 import { TECHS, techCost } from '../../gamedata';
 
+export const ERA_ORDER = ['ancient', 'classical', 'medieval', 'renaissance', 'industrial', 'modern', 'atomic', 'information'];
+
+export function computeEra(researchedTechs: string[]): string {
+  let maxIdx = 0;
+  for (const id of researchedTechs) {
+    const t = TECHS[id];
+    if (t) {
+      const idx = ERA_ORDER.indexOf(t.era);
+      if (idx > maxIdx) maxIdx = idx;
+    }
+  }
+  return ERA_ORDER[maxIdx];
+}
+
 export function canResearch(player: PlayerState, techId: string): boolean {
   const t = TECHS[techId];
   if (!t) return false;
