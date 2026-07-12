@@ -6,6 +6,7 @@ import { playerYield } from '../logic/state/yield';
 import { canResearch } from '../logic/state/tech';
 import { canResearchCivic } from '../logic/state/civic';
 import { TECHS, CIVICS, UNITS, techCost, CIVILIZATIONS } from '../gamedata';
+import { portraitAssetUrl } from './assets';
 
 const EVENT_LABELS: Record<string, string> = {
   CityFounded: '🏙 建城', CombatResolved: '⚔ 战斗', CityAttacked: '⚔ 攻城',
@@ -75,6 +76,13 @@ export function App() {
           <PixiMap />
         </div>
         <div style={{ width: 270, padding: 10, background: '#22223a', overflowY: 'auto', fontSize: 12 }}>
+          <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 8 }}>
+            <img src={portraitAssetUrl(player.civId)} alt={civ?.name} style={{ width: 56, height: 70, objectFit: 'cover', borderRadius: 4, border: '1px solid #c9a84c' }} />
+            <div>
+              <div style={{ fontSize: 13, color: '#c9a84c' }}>{civ?.name ?? player.civId}</div>
+              <div style={{ fontSize: 10, color: '#888' }}>{civ?.ability.name}</div>
+            </div>
+          </div>
           <div style={{ marginBottom: 10 }}>
             <b>研究</b>：{player.currentResearch ? TECHS[player.currentResearch.techId]?.name : '无'} ({researchProgress})
             <div style={{ marginTop: 4 }}>

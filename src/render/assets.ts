@@ -85,4 +85,67 @@ function lighten(hex: string, amt: number): string {
 /** 清空纹理缓存（HMR/换资产时） */
 export function clearHexTextureCache(): void {
   hexCache.clear();
+  hexImageCache.clear();
+}
+
+const hexImageCache = new Map<string, Texture>();
+
+/** 从图片 URL 生成六边形裁剪纹理（加载真实 AI 资产） */
+export async function makeHexTextureFromImage(url: string, size: number): Promise<Texture> {
+  const key = `${url}-${size}`;
+  const cached = hexImageCache.get(key);
+  if (cached) return cached;
+
+  const img = new Image();
+  img.src = url;
+  await new Promise<void>((resolve, reject) => {
+    img.onload = () => resolve();
+    img.onerror = () => reject(new Error(`load fail: ${url}`));
+  });
+
+  const canvas = document.createElement('canvas');
+  const s = Math.ceil(size * 2) + 2;
+  canvas.width = s;
+  canvas.height = s;
+  const ctx = canvas.getContext('2d')!;
+  const cx = s / 2;
+  const cy = s / 2;
+  ctx.beginPath();
+  for (let i = 0; i < 6; i++) {
+    const a = (Math.PI / 180) * (60 * i - 30);
+    const x = cx + size * Math.cos(a);
+    const y = cy + size * Math.sin(a);
+    if (i === 0) ctx.moveTo(x, y);
+    else ctx.lineTo(x, y);
+  }
+  ctx.closePath();
+  ctx.clip();
+  ctx.drawImage(img, cx - size, cy - size, size * 2, size * 2);
+  ctx.strokeStyle = 'rgba(0,0,0,0.3)';
+  ctx.lineWidth = 1;
+  ctx.stroke();
+
+  const tex = Texture.from(canvas);
+  hexImageCache.set(key, tex);
+  return tex;
+}
+
+/** 地形 -> public 资产 URL */
+export function terrainAssetUrl(terrain: string): string {
+  return `/assets/terrain/${terrain}.png`;
+}
+
+/** 单位 -> public 资产 URL */
+export function unitAssetUrl(unitType: string): string {
+  return `/assets/units/${unitType}.png`;
+}
+
+/** 领袖肖像 -> public 资产 URL */
+export function portraitAssetUrl(civId: string): string {
+  const map: Record<string, string> = {
+    rome: 'rome_caesar',
+    china: 'china_emperor',
+    greece: 'greece_leader',
+  };
+  return `/assets/portraits/${map[civId] ?? 'rome_caesar'}.png`;
 }

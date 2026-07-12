@@ -1,12 +1,12 @@
 // PixiJS 六边形地图渲染器（pointy-top）
 import { useEffect, useRef } from 'react';
-import { Application, Container, Graphics, Text, Polygon, Sprite } from 'pixi.js';
+import { Application, Container, Graphics, Text, Polygon, Sprite, Texture } from 'pixi.js';
 import { useGame } from './store';
 import { hexToPixel, hexNeighbors, inBounds } from '../logic/hex';
 import { findUnit, currentPlayer } from '../logic/state/commands';
 import { cityAt } from '../logic/state/combat';
 import { getTile } from '../logic/state/mapgen';
-import { makeHexTexture, TERRAIN_COLOR } from './assets';
+import { makeHexTexture, TERRAIN_COLOR, makeHexTextureFromImage, terrainAssetUrl } from './assets';
 import type { HexCoord } from '../types';
 
 const UNIT_MARK: Record<string, string> = {
@@ -29,6 +29,7 @@ function hexPolyPoints(cx: number, cy: number, size: number): number[] {
 export function PixiMap() {
   const hostRef = useRef<HTMLDivElement>(null);
   const appRef = useRef<Application | null>(null);
+  const terrainTexRef = useRef<Map<string, Texture>>(new Map());
   const state = useGame((s) => s.state);
   const selectedUnitId = useGame((s) => s.selectedUnitId);
   const command = useGame((s) => s.command);
@@ -54,6 +55,18 @@ export function PixiMap() {
         appRef.current = app;
         if (hostRef.current) hostRef.current.appendChild(app.canvas);
         draw();
+        // 预加载 AI 地形纹理
+        const terrains = ['grassland', 'plains', 'hills', 'desert', 'tundra', 'snow', 'coast', 'ocean', 'mountain'];
+        Promise.allSettled(
+          terrains.map(async (t) => {
+            try {
+              const tex = await makeHexTextureFromImage(terrainAssetUrl(t), DISP);
+              terrainTexRef.current.set(t, tex);
+            } catch {
+              /* 回退到程序化纹理 */
+            }
+          }),
+        ).then(() => draw());
       });
     return () => {
       destroyed = true;
@@ -123,7 +136,8 @@ export function PixiMap() {
       const cy = p.y + DISP;
       const isSel = selectedUnit && selectedUnit.tile.q === t.coord.q && selectedUnit.tile.r === t.coord.r;
       const reach = isReachable(t.coord);
-      const tex = makeHexTexture(TERRAIN_COLOR[t.terrain] ?? 0x444444, DISP);
+      const aiTex = terrainTexRef.current.get(t.terrain);
+      const tex = aiTex ?? makeHexTexture(TERRAIN_COLOR[t.terrain] ?? 0x444444, DISP);
       const sprite = new Sprite(tex);
       sprite.anchor.set(0.5);
       sprite.x = cx;
