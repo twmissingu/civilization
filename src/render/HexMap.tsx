@@ -1,8 +1,9 @@
 // SVG 六边形地图（pointy-top）+ 单位/城市/选中/移动范围
 import { useGame } from './store';
-import { hexToPixel } from '../logic/hex';
+import { hexToPixel, hexNeighbors, inBounds } from '../logic/hex';
 import { findUnit, currentPlayer } from '../logic/state/commands';
 import { cityAt } from '../logic/state/combat';
+import { getTile } from '../logic/state/mapgen';
 import type { HexCoord } from '../types';
 
 const TERRAIN_COLORS: Record<string, string> = {
@@ -34,6 +35,18 @@ export function HexMap() {
   const bounds = state.map.bounds;
   const width = bounds.width * DISP * Math.sqrt(3) + DISP * 2;
   const height = bounds.height * DISP * 1.5 + DISP * 2;
+
+  // 选中己方单位时的可移动邻格
+  const reachable: HexCoord[] = [];
+  if (selectedUnit && selectedUnit.ownerId === player.id) {
+    for (const n of hexNeighbors(selectedUnit.tile)) {
+      if (!inBounds(n, bounds)) continue;
+      const t = getTile(state.map, n);
+      if (!t || t.terrain === 'ocean' || t.terrain === 'mountain') continue;
+      reachable.push(n);
+    }
+  }
+  const isReachable = (c: HexCoord) => reachable.some((r) => r.q === c.q && r.r === c.r);
 
   const unitAt = (coord: HexCoord) =>
     state.players.flatMap((p) => p.units).find((u) => u.tile.q === coord.q && u.tile.r === coord.r);
@@ -78,8 +91,8 @@ export function HexMap() {
             <polygon
               points={hexPoints(cx, cy, DISP)}
               fill={TERRAIN_COLORS[t.terrain] ?? '#444'}
-              stroke={isSelected ? '#fff' : '#222'}
-              strokeWidth={isSelected ? 2 : 0.5}
+              stroke={isSelected ? '#fff' : isReachable(t.coord) ? '#ff0' : '#222'}
+              strokeWidth={isSelected || isReachable(t.coord) ? 2 : 0.5}
             />
             {t.feature === 'forest' && <text x={cx} y={cy - 3} fontSize={8} textAnchor="middle" fill="#2d4a1f">▲</text>}
             {t.resource && <text x={cx} y={cy + 6} fontSize={6} textAnchor="middle" fill="#ffd700">·</text>}
