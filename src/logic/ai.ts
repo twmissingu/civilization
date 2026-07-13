@@ -45,13 +45,18 @@ function randomLandNeighbor(state: GameState, tile: HexCoord, rng: ReturnType<ty
 export function aiDecide(state: GameState, player: PlayerState): GameCommand[] {
   const commands: GameCommand[] = [];
   const rng = createRng(hash(state.seed, state.turn, playerIdx(player.id)));
+  const difficulty = state.config.difficulty;
+  const skipChance = difficulty === 'easy' ? 0.35 : difficulty === 'hard' ? 0 : 0.1;
 
-  // 战略层：研究
+  // 战略层：研究（easy 随机，standard/hard 选最便宜）
   if (!player.currentResearch) {
     const available = Object.values(TECHS).filter((t) => canResearch(player, t.id));
     if (available.length > 0) {
-      available.sort((a, b) => a.cost - b.cost);
-      commands.push({ kind: 'research', techId: available[0].id });
+      const pick =
+        difficulty === 'easy'
+          ? available[Math.floor(rng.next() * available.length)]
+          : available.sort((a, b) => a.cost - b.cost)[0];
+      commands.push({ kind: 'research', techId: pick.id });
     }
   }
   // 战略层：市政
@@ -63,21 +68,29 @@ export function aiDecide(state: GameState, player: PlayerState): GameCommand[] {
     }
   }
 
-  // 战术层：城市生产
+  // 战术层：城市生产（hard 优先补军事）
+  const militaryCount = player.units.filter((u) => ['warrior', 'archer', 'swordsman', 'cavalry', 'knight'].includes(u.type)).length;
   for (const city of player.cities) {
     if (city.queue.length > 0) continue;
     const builderCount = player.units.filter((u) => u.type === 'builder').length;
     let unitType = 'warrior';
-    if (builderCount < player.cities.length) unitType = 'builder';
-    else if (player.cities.length < 5 && player.researchedTechs.length > 3) unitType = 'settler';
-    else if (player.researchedTechs.includes('archery')) unitType = 'archer';
+    if (difficulty === 'hard' && militaryCount < player.cities.length) {
+      unitType = player.researchedTechs.includes('archery') ? 'archer' : 'warrior';
+    } else if (builderCount < player.cities.length) {
+      unitType = 'builder';
+    } else if (player.cities.length < (difficulty === 'hard' ? 6 : 4) && player.researchedTechs.length > 3) {
+      unitType = 'settler';
+    } else if (player.researchedTechs.includes('archery')) {
+      unitType = 'archer';
+    }
     if (UNITS[unitType] && (UNITS[unitType].unlockTech === 'initial' || player.researchedTechs.includes(UNITS[unitType].unlockTech))) {
       commands.push({ kind: 'trainUnit', cityId: city.id, unitType });
     }
   }
 
-  // 战术层：单位行动
+  // 战术层：单位行动（easy/standard 按 skipChance 怠工）
   for (const unit of player.units) {
+    if (rng.next() < skipChance) continue;
     if (unit.type === 'settler') {
       const far = player.cities.every((c) => hexDistance(c.tile, unit.tile) >= 4);
       if (far && isLand(state, unit.tile) && player.cities.length < 8) {

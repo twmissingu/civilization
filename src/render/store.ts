@@ -1,6 +1,7 @@
 // 游戏状态 store（Zustand）+ 命令分发 + AI 驱动
 import { create } from 'zustand';
 import type { GameState, GameConfig } from '../logic/state/types';
+import type { HexCoord } from '../types';
 import type { GameCommand } from '../logic/state/commands';
 import { applyCommand } from '../logic/state/commands';
 import { createInitialState } from '../logic/state/createInitialState';
@@ -23,12 +24,14 @@ interface GameStore {
   state: GameState;
   selectedUnitId: string | null;
   selectedCityId: string | null;
+  hoveredTile: HexCoord | null;
   message: string;
   eventLog: string[];
   command: (cmd: GameCommand) => void;
   endTurn: () => void;
   selectUnit: (id: string | null) => void;
   selectCity: (id: string | null) => void;
+  setHoveredTile: (c: HexCoord | null) => void;
   newGame: (seed?: number) => void;
   save: () => Promise<void>;
   load: () => Promise<void>;
@@ -38,6 +41,7 @@ export const useGame = create<GameStore>((set, get) => ({
   state: createInitialState(42, defaultConfig()),
   selectedUnitId: null,
   selectedCityId: null,
+  hoveredTile: null,
   message: '',
   eventLog: [],
   command: (cmd) => {
@@ -59,6 +63,7 @@ export const useGame = create<GameStore>((set, get) => ({
   },
   selectUnit: (id) => set({ selectedUnitId: id, selectedCityId: null }),
   selectCity: (id) => set({ selectedCityId: id, selectedUnitId: null }),
+  setHoveredTile: (c) => set({ hoveredTile: c }),
   newGame: (seed = Math.floor(Math.random() * 100000)) => {
     set({ state: createInitialState(seed, defaultConfig()), selectedUnitId: null, selectedCityId: null, message: `新游戏 seed=${seed}` });
   },

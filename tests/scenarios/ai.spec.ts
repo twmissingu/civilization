@@ -77,4 +77,31 @@ describe('AI 决策', () => {
     expect(cmds.some((c) => c.kind === 'buildImprovement')).toBe(true);
     expect(cmds.some((c) => c.kind === 'attack')).toBe(true);
   });
+
+  it('hard 难度优先补军事', () => {
+    const state = makeState();
+    state.config.difficulty = 'hard';
+    state.currentPlayerIndex = 1;
+    const p1 = state.players[1];
+    const spawn = p1.units.find((u) => u.type === 'settler')!.tile;
+    p1.cities.push({
+      id: 'c1', ownerId: 'player-1', name: 'A', tile: spawn, territory: [spawn], workedTiles: [spawn],
+      population: 1, food: 0, culture: 0, housing: 2, amenities: 1, buildings: ['monument'],
+      districts: [], wonders: [], queue: [], hp: 200, wallsHp: 0, wallsMax: 0, isCapital: true, rangedStrikeUsed: false,
+    });
+    p1.capitalCityId = 'c1';
+    p1.units = p1.units.filter((u) => u.type !== 'warrior' && u.type !== 'settler'); // 0 军事
+    const cmds = aiDecide(state, p1);
+    const train = cmds.find((c) => c.kind === 'trainUnit') as { unitType: string } | undefined;
+    expect(train).toBeDefined();
+    expect(['warrior', 'archer']).toContain(train!.unitType);
+  });
+
+  it('hard 难度开拓者建城（不怠工）', () => {
+    const state = makeState();
+    state.config.difficulty = 'hard';
+    state.currentPlayerIndex = 1;
+    const cmds = aiDecide(state, state.players[1]);
+    expect(cmds.some((c) => c.kind === 'foundCity')).toBe(true);
+  });
 });

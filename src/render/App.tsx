@@ -5,8 +5,22 @@ import { currentPlayer, findUnit, findCity } from '../logic/state/commands';
 import { playerYield } from '../logic/state/yield';
 import { canResearch } from '../logic/state/tech';
 import { canResearchCivic } from '../logic/state/civic';
-import { TECHS, CIVICS, UNITS, techCost, CIVILIZATIONS } from '../gamedata';
+import { TECHS, CIVICS, UNITS, techCost, CIVILIZATIONS, BUILDINGS, WONDERS, GOVERNMENTS, POLICY_CARDS } from '../gamedata';
 import { portraitAssetUrl } from './assets';
+import { describeTile } from '../logic/state/describe';
+import { productionCost } from '../logic/state/city';
+import { canChangeGovernment, canSwitchPolicy } from '../logic/state/civic';
+import type { PlayerState } from '../logic/state/types';
+
+function firstEmptySlot(player: PlayerState, cardType: string): number | null {
+  const gov = GOVERNMENTS[player.government];
+  for (let i = 0; i < player.policySlots.length; i++) {
+    if (player.policySlots[i] !== null) continue;
+    const slotType = i < gov.militarySlots ? 'military' : i < gov.militarySlots + gov.economicSlots ? 'economic' : 'wildcard';
+    if (slotType === 'wildcard' || slotType === cardType) return i;
+  }
+  return null;
+}
 
 const EVENT_LABELS: Record<string, string> = {
   CityFounded: '🏙 建城', CombatResolved: '⚔ 战斗', CityAttacked: '⚔ 攻城',
@@ -19,7 +33,7 @@ function eventLabel(kind: string): string {
 }
 
 export function App() {
-  const { state, selectedUnitId, selectedCityId, command, endTurn, newGame, save, load, message, eventLog } = useGame();
+  const { state, selectedUnitId, selectedCityId, command, endTurn, newGame, save, load, message, eventLog, hoveredTile } = useGame();
   const player = currentPlayer(state);
   const y = playerYield(state, player);
   const civ = CIVILIZATIONS[player.civId];
@@ -87,7 +101,8 @@ export function App() {
             <b>研究</b>：{player.currentResearch ? TECHS[player.currentResearch.techId]?.name : '无'} ({researchProgress})
             <div style={{ marginTop: 4 }}>
               {availableTechs.map((t) => (
-                <div key={t.id} style={{ ...item, color: '#8cf' }} onClick={() => command({ kind: 'research', techId: t.id })}>
+                <div key={t.id} style={{ ...item, color: '#8cf', display: 'flex', alignItems: 'center', gap: 4 }} onClick={() => command({ kind: 'research', techId: t.id })}>
+                  <img src={`/assets/tech/${t.id}.png`} alt="" width={18} height={18} style={{ borderRadius: 2 }} onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} />
                   • {t.name} ({t.cost})
                 </div>
               ))}
@@ -98,11 +113,31 @@ export function App() {
             <b>市政</b>：{player.currentCivic ? CIVICS[player.currentCivic.civicId]?.name : '无'}
             <div style={{ marginTop: 4 }}>
               {availableCivics.map((c) => (
-                <div key={c.id} style={{ ...item, color: '#c8f' }} onClick={() => command({ kind: 'researchCivic', civicId: c.id })}>
+                <div key={c.id} style={{ ...item, color: '#c8f', display: 'flex', alignItems: 'center', gap: 4 }} onClick={() => command({ kind: 'researchCivic', civicId: c.id })}>
+                  <img src={`/assets/civic/${c.id}.png`} alt="" width={18} height={18} style={{ borderRadius: 2 }} onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} />
                   • {c.name} ({c.cost})
                 </div>
               ))}
             </div>
+          </div>
+
+          <div style={{ marginBottom: 10 }}>
+            <b>政体</b>：{GOVERNMENTS[player.government]?.name}
+            <div style={{ fontSize: 10, color: '#999', marginBottom: 2 }}>槽位：{player.policySlots.map((s) => s ? POLICY_CARDS[s]?.name?.slice(0, 2) : '空').join(' ')}</div>
+            <div style={{ fontSize: 10, color: '#888' }}>切换：</div>
+            {Object.values(GOVERNMENTS).filter((g) => canChangeGovernment(player, g.id) && g.id !== player.government).slice(0, 5).map((g) => (
+              <button key={g.id} style={{ ...btn, margin: 1, fontSize: 10, background: '#846' }} onClick={() => command({ kind: 'changeGovernment', governmentType: g.id })}>{g.name}</button>
+            ))}
+            <div style={{ fontSize: 10, color: '#888', marginTop: 4 }}>政策卡（点选装入空槽）：</div>
+            {Object.values(POLICY_CARDS).filter((c) => player.researchedCivics.includes(c.unlockCivic) && c.type !== 'diplomatic').slice(0, 8).map((c) => {
+              const slot = firstEmptySlot(player, c.type);
+              const canAssign = slot !== null && canSwitchPolicy(player, c.id, slot);
+              return (
+                <button key={c.id} disabled={!canAssign} style={{ ...btn, margin: 1, fontSize: 10, background: canAssign ? '#486' : '#555', opacity: canAssign ? 1 : 0.5 }} onClick={() => slot !== null && command({ kind: 'switchPolicy', cardId: c.id, slotIndex: slot })}>
+                  {c.name}
+                </button>
+              );
+            })}
           </div>
 
           {unit && (
@@ -120,11 +155,35 @@ export function App() {
             <div style={panel}>
               <b>{city.name}</b> (人口 {city.population})
               <div>领土 {city.territory.length} 住房 {city.housing}</div>
-              <div>队列：{city.queue.map((q) => q.id).join(', ') || '空'}</div>
-              <div style={{ marginTop: 4 }}>训练：</div>
+              <div style={{ marginTop: 4 }}>队列：</div>
+              {city.queue.length === 0 ? <div style={{ color: '#888' }}>空</div> : city.queue.map((q, i) => {
+                const cost = productionCost(state, city, q);
+                const name = q.kind === 'unit' ? UNITS[q.id]?.name : q.kind === 'building' ? BUILDINGS[q.id]?.name : q.kind === 'wonder' ? WONDERS[q.id]?.name : q.id;
+                const pct = cost > 0 && isFinite(cost) ? Math.min(100, Math.round((q.progress / cost) * 100)) : 0;
+                return (
+                  <div key={i} style={{ fontSize: 11 }}>
+                    {name} {pct}%
+                    <div style={{ height: 4, background: '#333', borderRadius: 2, marginTop: 1 }}>
+                      <div style={{ height: 4, width: `${pct}%`, background: '#4a6', borderRadius: 2 }} />
+                    </div>
+                  </div>
+                );
+              })}
+              <div style={{ marginTop: 6 }}>训练单位：</div>
               {Object.values(UNITS).filter((u) => u.unlockTech === 'initial' || player.researchedTechs.includes(u.unlockTech)).slice(0, 6).map((u) => (
                 <button key={u.id} style={{ ...btn, margin: 1, fontSize: 11 }} onClick={() => command({ kind: 'trainUnit', cityId: city.id, unitType: u.id })}>{u.name}</button>
               ))}
+              <div style={{ marginTop: 6 }}>建造建筑：</div>
+              {Object.values(BUILDINGS).filter((b) => (!b.unlockTech || player.researchedTechs.includes(b.unlockTech)) && (!b.unlockCivic || player.researchedCivics.includes(b.unlockCivic)) && !city.buildings.includes(b.id) && b.district === 'city_center').slice(0, 6).map((b) => (
+                <button key={b.id} style={{ ...btn, margin: 1, fontSize: 11, background: '#48a' }} onClick={() => command({ kind: 'buildBuilding', cityId: city.id, buildingType: b.id })}>{b.name}</button>
+              ))}
+            </div>
+          )}
+
+          {hoveredTile && (
+            <div style={{ ...panel, background: '#1a1a2e' }}>
+              <b>地块</b>
+              <div style={{ fontSize: 11, color: '#ccc' }}>{describeTile(state, hoveredTile)}</div>
             </div>
           )}
 

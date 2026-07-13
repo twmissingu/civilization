@@ -1,6 +1,6 @@
 // 命令契约：GameCommand union + 两阶段校验 + applyCommand
 import type { HexCoord } from '../../types';
-import type { GameState, GameEvent, PlayerState, UnitState, CityState } from './types';
+import type { GameState, GameEvent } from './types';
 import type { DistrictType, GovernmentId } from '../../gamedata';
 import { UNITS, BUILDINGS, WONDERS } from '../../gamedata';
 import { hexEquals, inBounds } from '../hex';
@@ -13,6 +13,7 @@ import { resolveAttack, resolveAttackCity, cityAt, isEnemyCity } from './combat'
 import { foundCity, buyTilePrice, settleCity, productionCost } from './city';
 import { playerYield } from './yield';
 import { resolveTurn } from './turnResolution';
+import { findUnit, findCity, currentPlayer, unitAt } from './query';
 
 export interface RuleError {
   code: string;
@@ -38,23 +39,8 @@ export type GameCommand =
   | { kind: 'suePeace'; targetCivId: string }
   | { kind: 'startSpaceProject'; cityId: string; stage: 1 | 2 | 3 };
 
-// ---------- helpers ----------
-export function findUnit(state: GameState, unitId: string): UnitState | undefined {
-  for (const p of state.players) for (const u of p.units) if (u.id === unitId) return u;
-  return undefined;
-}
-export function findCity(state: GameState, cityId: string): CityState | undefined {
-  for (const p of state.players) for (const c of p.cities) if (c.id === cityId) return c;
-  return undefined;
-}
-export function currentPlayer(state: GameState): PlayerState {
-  return state.players[state.currentPlayerIndex];
-}
-
-function unitAt(state: GameState, coord: HexCoord): UnitState | undefined {
-  for (const p of state.players) for (const u of p.units) if (hexEquals(u.tile, coord)) return u;
-  return undefined;
-}
+// ---------- helpers（移至 query.ts，此处 re-export 保持兼容）----------
+export { findUnit, findCity, currentPlayer };
 
 // ---------- 校验 ----------
 export function canExecute(state: GameState, cmd: GameCommand): RuleError | null {

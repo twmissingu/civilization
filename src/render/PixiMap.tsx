@@ -16,6 +16,7 @@ const UNIT_MARK: Record<string, string> = {
 };
 
 const DISP = 15;
+const PLAYER_TINT = [0x4a8aff, 0xff5050, 0xffaa30, 0x50ff80];
 
 function hexPolyPoints(cx: number, cy: number, size: number): number[] {
   const pts: number[] = [];
@@ -37,6 +38,7 @@ export function PixiMap() {
   const command = useGame((s) => s.command);
   const selectUnit = useGame((s) => s.selectUnit);
   const selectCity = useGame((s) => s.selectCity);
+  const setHoveredTile = useGame((s) => s.setHoveredTile);
 
   useEffect(() => {
     let destroyed = false;
@@ -126,6 +128,12 @@ export function PixiMap() {
     }
     const isReachable = (c: HexCoord) => reachable.some((r) => r.q === c.q && r.r === c.r);
 
+    // 领土归属
+    const ownerByTile = new Map<string, number>();
+    state.players.forEach((p, idx) => {
+      for (const c of p.cities) for (const tile of c.territory) ownerByTile.set(`${tile.q},${tile.r}`, idx);
+    });
+
     const layer = new Container();
     app.stage.addChild(layer);
 
@@ -144,7 +152,16 @@ export function PixiMap() {
       sprite.eventMode = 'static';
       sprite.hitArea = new Polygon(hexPolyPoints(cx, cy, DISP));
       sprite.on('pointertap', () => onTile(t.coord));
+      sprite.on('pointerenter', () => setHoveredTile(t.coord));
+      sprite.on('pointerleave', () => setHoveredTile(null));
       layer.addChild(sprite);
+      // 领土着色
+      const owner = ownerByTile.get(`${t.coord.q},${t.coord.r}`);
+      if (owner !== undefined) {
+        const ov = new Graphics();
+        ov.poly(hexPolyPoints(cx, cy, DISP)).fill({ color: PLAYER_TINT[owner % PLAYER_TINT.length], alpha: 0.2 });
+        layer.addChild(ov);
+      }
       if (isSel || reach) {
         const stroke = new Graphics();
         stroke.poly(hexPolyPoints(cx, cy, DISP)).stroke({ width: 2, color: isSel ? 0xffffff : 0xffff00 });
