@@ -3,7 +3,7 @@ import { createInitialState } from '../../src/logic/state/createInitialState';
 import { applyCommand } from '../../src/logic/state/commands';
 import { canBuildImprovement, buildImprovement } from '../../src/logic/state/builder';
 import { districtAdjacencyBonus } from '../../src/logic/state/district';
-import { resolveAttack, resolveAttackCity } from '../../src/logic/state/combat';
+import { resolveAttack, resolveAttackCity, previewCombat } from '../../src/logic/state/combat';
 import { canChangeGovernment, changeGovernment, canSwitchPolicy, canResearchCivic, advanceCivic } from '../../src/logic/state/civic';
 import { resolveTurn } from '../../src/logic/state/turnResolution';
 import { tileYield, cityYield } from '../../src/logic/state/yield';
@@ -285,6 +285,28 @@ describe('文明能力', () => {
     resolveTurn(state);
     expect(p.era).toBe('classical');
     expect(p.currentResearch!.progress).toBeGreaterThan(0);
+  });
+});
+
+describe('战斗预览', () => {
+  it('previewCombat 返回双方 CS 与预计伤害', () => {
+    const state = makeState();
+    state.diplomacy['player-0']['player-1'] = 'war';
+    state.diplomacy['player-1']['player-0'] = 'war';
+    const attacker = state.players[0].units.find((u) => u.type === 'warrior')!;
+    const defender = state.players[1].units.find((u) => u.type === 'warrior')!;
+    defender.tile = hexNeighbors(attacker.tile)[0];
+    const pv = previewCombat(state, attacker.id, defender.tile);
+    expect(pv).not.toBeNull();
+    expect(pv!.target).toBe('unit');
+    expect(pv!.attackerCS).toBeGreaterThan(0);
+    expect(pv!.defenderCS).toBeGreaterThan(0);
+    expect(pv!.estDamage).toBeGreaterThan(0);
+  });
+  it('previewCombat 无目标返回 null', () => {
+    const state = makeState();
+    const attacker = state.players[0].units.find((u) => u.type === 'warrior')!;
+    expect(previewCombat(state, attacker.id, { q: 999, r: 999 })).toBeNull();
   });
 });
 

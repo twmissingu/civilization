@@ -4,12 +4,15 @@ import { PixiMap } from './PixiMap';
 import { currentPlayer, findUnit, findCity } from '../logic/state/commands';
 import { playerYield } from '../logic/state/yield';
 import { canResearch } from '../logic/state/tech';
+import { computeEra } from '../logic/state/tech';
+import { playerScore } from '../logic/state/victory';
 import { canResearchCivic } from '../logic/state/civic';
 import { TECHS, CIVICS, UNITS, techCost, CIVILIZATIONS, BUILDINGS, WONDERS, GOVERNMENTS, POLICY_CARDS } from '../gamedata';
 import { portraitAssetUrl } from './assets';
 import { describeTile } from '../logic/state/describe';
 import { productionCost } from '../logic/state/city';
 import { canChangeGovernment, canSwitchPolicy } from '../logic/state/civic';
+import { previewCombat } from '../logic/state/combat';
 import type { PlayerState } from '../logic/state/types';
 
 function firstEmptySlot(player: PlayerState, cardType: string): number | null {
@@ -97,6 +100,22 @@ export function App() {
               <div style={{ fontSize: 10, color: '#888' }}>{civ?.ability.name}</div>
             </div>
           </div>
+          <div style={{ ...panel, background: '#1a1a2e' }}>
+            <b>进度</b>
+            <div style={{ fontSize: 11, color: '#ccc' }}>
+              时代：{computeEra(player.researchedTechs)} · 回合 {state.turn}/{state.config.maxTurns}
+            </div>
+            <div style={{ fontSize: 11, color: '#8cf' }}>
+              科技胜利：{player.cities.find((c) => c.spaceProject)?.spaceProject ? `阶段 ${player.cities.find((c) => c.spaceProject)!.spaceProject!.stage}` : '未开始'}
+            </div>
+            <div style={{ fontSize: 11, color: '#f88' }}>
+              统治：剩余首都 {state.players.filter((p) => p.id !== player.id && p.capitalCityId).length}
+            </div>
+            <div style={{ fontSize: 11, color: '#fc8' }}>
+              分数：{playerScore(player)} · 排名 {[...state.players].sort((a, b) => playerScore(b) - playerScore(a)).findIndex((p) => p.id === player.id) + 1}/{state.players.length}
+            </div>
+          </div>
+
           <div style={{ marginBottom: 10 }}>
             <b>研究</b>：{player.currentResearch ? TECHS[player.currentResearch.techId]?.name : '无'} ({researchProgress})
             <div style={{ marginTop: 4 }}>
@@ -133,8 +152,8 @@ export function App() {
               const slot = firstEmptySlot(player, c.type);
               const canAssign = slot !== null && canSwitchPolicy(player, c.id, slot);
               return (
-                <button key={c.id} disabled={!canAssign} style={{ ...btn, margin: 1, fontSize: 10, background: canAssign ? '#486' : '#555', opacity: canAssign ? 1 : 0.5 }} onClick={() => slot !== null && command({ kind: 'switchPolicy', cardId: c.id, slotIndex: slot })}>
-                  {c.name}
+                <button key={c.id} disabled={!canAssign} style={{ ...btn, margin: 1, fontSize: 10, background: canAssign ? '#486' : '#555', opacity: canAssign ? 1 : 0.5, display: 'inline-flex', alignItems: 'center', gap: 3 }} onClick={() => slot !== null && command({ kind: 'switchPolicy', cardId: c.id, slotIndex: slot })}>
+                  <img src={`/assets/policy/${c.id}.png`} alt="" width={14} height={14} style={{ borderRadius: 2 }} onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} />{c.name}
                 </button>
               );
             })}
@@ -175,7 +194,9 @@ export function App() {
               ))}
               <div style={{ marginTop: 6 }}>建造建筑：</div>
               {Object.values(BUILDINGS).filter((b) => (!b.unlockTech || player.researchedTechs.includes(b.unlockTech)) && (!b.unlockCivic || player.researchedCivics.includes(b.unlockCivic)) && !city.buildings.includes(b.id) && b.district === 'city_center').slice(0, 6).map((b) => (
-                <button key={b.id} style={{ ...btn, margin: 1, fontSize: 11, background: '#48a' }} onClick={() => command({ kind: 'buildBuilding', cityId: city.id, buildingType: b.id })}>{b.name}</button>
+                <button key={b.id} style={{ ...btn, margin: 1, fontSize: 11, background: '#48a', display: 'inline-flex', alignItems: 'center', gap: 3 }} onClick={() => command({ kind: 'buildBuilding', cityId: city.id, buildingType: b.id })}>
+                  <img src={`/assets/buildings/${b.id}.png`} alt="" width={16} height={16} style={{ borderRadius: 2 }} onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} />{b.name}
+                </button>
               ))}
             </div>
           )}
@@ -184,6 +205,16 @@ export function App() {
             <div style={{ ...panel, background: '#1a1a2e' }}>
               <b>地块</b>
               <div style={{ fontSize: 11, color: '#ccc' }}>{describeTile(state, hoveredTile)}</div>
+              {unit && unit.ownerId === player.id && (() => {
+                const pv = previewCombat(state, unit.id, hoveredTile);
+                if (!pv) return null;
+                return (
+                  <div style={{ fontSize: 11, color: '#fc8', marginTop: 4 }}>
+                    ⚔ 战斗：我 CS{pv.attackerCS} vs 敌 CS{pv.defenderCS}
+                    {pv.target === 'unit' ? `（HP${pv.defenderHp}）预计伤害 ${pv.estDamage}` : '（城市）'}
+                  </div>
+                );
+              })()}
             </div>
           )}
 

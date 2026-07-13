@@ -78,7 +78,7 @@ export function aiDecide(state: GameState, player: PlayerState): GameCommand[] {
       unitType = player.researchedTechs.includes('archery') ? 'archer' : 'warrior';
     } else if (builderCount < player.cities.length) {
       unitType = 'builder';
-    } else if (player.cities.length < (difficulty === 'hard' ? 6 : 4) && player.researchedTechs.length > 3) {
+    } else if (player.cities.length < (difficulty === 'hard' ? 6 : 4) && player.researchedTechs.length > 1) {
       unitType = 'settler';
     } else if (player.researchedTechs.includes('archery')) {
       unitType = 'archer';
@@ -92,7 +92,7 @@ export function aiDecide(state: GameState, player: PlayerState): GameCommand[] {
   for (const unit of player.units) {
     if (rng.next() < skipChance) continue;
     if (unit.type === 'settler') {
-      const far = player.cities.every((c) => hexDistance(c.tile, unit.tile) >= 4);
+      const far = player.cities.every((c) => hexDistance(c.tile, unit.tile) >= 3);
       if (far && isLand(state, unit.tile) && player.cities.length < 8) {
         commands.push({ kind: 'foundCity', unitId: unit.id, name: `${player.civId}-${player.cities.length + 1}` });
         continue;

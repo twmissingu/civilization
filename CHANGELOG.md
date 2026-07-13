@@ -5,6 +5,28 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [0.2.0] - 2026-07-13
+
+### Added
+- 战斗预览：选中单位悬停敌方显示双方 CS + 预计伤害（`previewCombat` 纯函数 + 面板）
+- 胜利进度面板：时代/回合、科技胜利阶段、统治剩余首都、分数排名（US44）
+- AI 难度差异化（easy 怠工+随机研究 / standard / hard 优先军事+不怠工）
+- 失败玩家（无城无单位）endTurn 跳过，回合轮转不卡淘汰者
+- 27 新 AI 美术资产（67 -> 94，覆盖建筑/政策卡/科技/市政/UI 全类目）
+- 建筑/政策卡图标接入城市训练与政体面板
+- `CLAUDE.md`（架构/命令/约定指引）
+
+### Changed
+- AI 扩张更积极（开拓者更早产出、建城距离 >=3），验证 40 回合内建 ≥2 城
+- 渲染层 PixiMap 领土着色 + 选中可移动范围高亮
+
+### Fixed
+- endTurn 包裹检测改用 `nextActivePlayer`（跳过失败玩家，修正淘汰者卡回合）
+- describe.ts 死代码（无操作三元）移除
+
+### Security
+- .gitignore 已含 .env* 规则；无 secret 泄露
+
 ## [0.1.0] - 2026-07-13
 
 ### Added

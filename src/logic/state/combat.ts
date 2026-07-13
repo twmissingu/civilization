@@ -3,6 +3,7 @@ import type { GameState, UnitState, CityState } from './types';
 import { UNITS } from '../../gamedata';
 import { createRng, hash } from '../rng';
 import { hexEquals } from '../hex';
+import { findUnit, unitAt } from './query';
 
 function unitCS(unit: UnitState): number {
   const def = UNITS[unit.type];
@@ -152,4 +153,31 @@ export function isEnemyCity(state: GameState, unit: UnitState, city: CityState):
 export function cityAt(state: GameState, coord: { q: number; r: number }): CityState | undefined {
   for (const p of state.players) for (const c of p.cities) if (hexEquals(c.tile, coord)) return c;
   return undefined;
+}
+
+/** 战斗预览（不实际结算）：返回双方 CS 与预计伤害 */
+export interface CombatPreview {
+  attackerCS: number;
+  defenderCS: number;
+  estDamage: number;
+  target: 'unit' | 'city';
+  defenderHp: number;
+}
+export function previewCombat(state: GameState, attackerId: string, targetTile: { q: number; r: number }): CombatPreview | null {
+  const attacker = findUnit(state, attackerId);
+  if (!attacker) return null;
+  const aCS = unitCS(attacker);
+  const defUnit = unitAt(state, targetTile);
+  if (defUnit && defUnit.ownerId !== attacker.ownerId) {
+    const dCS = unitCS(defUnit);
+    const diff = aCS - dCS;
+    const baseDamage = Math.max(10, Math.min(100, Math.round(30 * Math.exp(diff / 25))));
+    return { attackerCS: aCS, defenderCS: dCS, estDamage: baseDamage, target: 'unit', defenderHp: defUnit.hp };
+  }
+  const defCity = cityAt(state, targetTile);
+  if (defCity && defCity.ownerId !== attacker.ownerId) {
+    const cCS = Math.max(10, 10 + defCity.population);
+    return { attackerCS: aCS, defenderCS: cCS, estDamage: 0, target: 'city', defenderHp: defCity.hp };
+  }
+  return null;
 }

@@ -1,6 +1,6 @@
 // 命令契约：GameCommand union + 两阶段校验 + applyCommand
 import type { HexCoord } from '../../types';
-import type { GameState, GameEvent } from './types';
+import type { GameState, GameEvent, PlayerState } from './types';
 import type { DistrictType, GovernmentId } from '../../gamedata';
 import { UNITS, BUILDINGS, WONDERS } from '../../gamedata';
 import { hexEquals, inBounds } from '../hex';
@@ -41,6 +41,21 @@ export type GameCommand =
 
 // ---------- helpers（移至 query.ts，此处 re-export 保持兼容）----------
 export { findUnit, findCity, currentPlayer };
+
+/** 玩家失败：无城且无单位 */
+export function isDefeated(p: PlayerState): boolean {
+  return p.cities.length === 0 && p.units.length === 0;
+}
+
+/** 下一非失败玩家索引（用于 endTurn 跳过已淘汰者） */
+export function nextActivePlayer(state: GameState): number {
+  const n = state.players.length;
+  for (let i = 1; i <= n; i++) {
+    const idx = (state.currentPlayerIndex + i) % n;
+    if (!isDefeated(state.players[idx])) return idx;
+  }
+  return state.currentPlayerIndex;
+}
 
 // ---------- 校验 ----------
 export function canExecute(state: GameState, cmd: GameCommand): RuleError | null {
@@ -255,13 +270,15 @@ export function applyCommand(state: GameState, cmd: GameCommand): { state: GameS
       break;
     }
     case 'endTurn': {
-      s.currentPlayerIndex = (s.currentPlayerIndex + 1) % s.players.length;
-      if (s.currentPlayerIndex === 0) {
+      const prev = s.currentPlayerIndex;
+      const next = nextActivePlayer(s);
+      if (next <= prev) {
         resolveTurn(s);
         if (s.status === 'finished') {
           events.push({ kind: 'GameWon', turn: s.turn, payload: { victor: s.winner!, victoryType: s.victoryType! } });
         }
       }
+      s.currentPlayerIndex = next;
       break;
     }
   }
