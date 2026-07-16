@@ -16,6 +16,7 @@ export interface BuildingDef {
 }
 
 export const BUILDINGS: Record<string, BuildingDef> = {
+  palace: { id: 'palace', name: '宫殿', district: 'city_center', cost: 0, yield: { food: 2, production: 2, gold: 2, science: 1, culture: 1, faith: 0 }, housing: 0, amenities: 1, effects: { capital: 1 } },
   monument: { id: 'monument', name: '纪念碑', district: 'city_center', cost: 60, yield: { food: 0, production: 0, gold: 0, science: 0, culture: 2, faith: 0 }, housing: 0, amenities: 0 },
   granary: { id: 'granary', name: '粮仓', district: 'city_center', unlockTech: 'pottery', cost: 80, yield: { food: 2, production: 0, gold: 0, science: 0, culture: 0, faith: 0 }, housing: 2, amenities: 0 },
   library: { id: 'library', name: '图书馆', district: 'campus', unlockTech: 'writing', cost: 80, yield: { food: 0, production: 0, gold: 0, science: 2, culture: 0, faith: 0 }, housing: 0, amenities: 0 },

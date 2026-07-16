@@ -208,8 +208,9 @@ export function applyCommand(state: GameState, cmd: GameCommand): { state: GameS
         const targetUnit = unitAt(s, cmd.targetTile);
         const targetCity = cityAt(s, cmd.targetTile);
         if (targetUnit) {
+          const defenderTile = targetUnit.tile;
           const r = resolveAttack(s, u, targetUnit);
-          events.push({ kind: 'CombatResolved', turn: s.turn, payload: { attackerId: u.id, defenderId: targetUnit.id, ...r } });
+          events.push({ kind: 'CombatResolved', turn: s.turn, payload: { attackerId: u.id, defenderId: targetUnit.id, defenderTile, ...r } });
         } else if (targetCity) {
           const r = resolveAttackCity(s, u, targetCity);
           events.push({ kind: 'CityAttacked', turn: s.turn, payload: { attackerId: u.id, cityId: targetCity.id, ...r } });
@@ -252,7 +253,7 @@ export function applyCommand(state: GameState, cmd: GameCommand): { state: GameS
     }
     case 'changeGovernment':
       changeGovernment(player, cmd.governmentType);
-      events.push({ kind: 'GovernmentChanged', turn: s.turn, payload: { governmentType: cmd.governmentType } });
+      events.push({ kind: 'GovernmentChanged', turn: s.turn, payload: { playerId: player.id, governmentType: cmd.governmentType } });
       break;
     case 'declareWar':
       s.diplomacy[player.id][cmd.targetCivId] = 'war';
@@ -281,6 +282,9 @@ export function applyCommand(state: GameState, cmd: GameCommand): { state: GameS
       s.currentPlayerIndex = next;
       break;
     }
+  }
+  if (events.length > 0) {
+    s.log.push(...events);
   }
   return { state: s, events };
 }

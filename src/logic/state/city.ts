@@ -56,7 +56,7 @@ export function foundCity(state: GameState, settler: UnitState, name: string): s
     culture: 0,
     housing: 2,
     amenities: 1,
-    buildings: ['monument'],
+    buildings: ['palace', 'monument'],
     districts: [],
     wonders: [],
     queue: [],
