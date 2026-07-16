@@ -68,9 +68,8 @@
 - 外交胜利
 - 地形工程（铁路/隧道/运河）
 
-## Phase 5：联机/Modding/移动端/音频
+## Phase 5：Modding/移动端/音频
 
-- 联机：确定性同步（broadcast commands + seed），基于已预留的架构
 - Modding：数据驱动（gamedata/*.ts -> JSON/TOML，编辑器）
 - 移动端：触控适配 + PWA
 - 音频：背景音乐 + 音效
@@ -82,7 +81,7 @@ Phase 1 (done) -> Phase 2.1 城邦 -> 2.4 宗教 -> 2.5 文化胜利
                 -> 2.2 大人物 -> 2.3 贸易
                 -> Phase 3.1 完整树 -> 3.2 文明 -> 3.4 平衡
                 -> Phase 4 DLC
-                -> Phase 5 联机
+                -> Phase 5 Modding/音频/移动
 ```
 
 ## 技术债（优先清理）
@@ -102,5 +101,5 @@ Phase 1 (done) -> Phase 2.1 城邦 -> 2.4 宗教 -> 2.5 文化胜利
 | Phase 2 | 4-6 周 | 5 个子系统，各 ~1 周 |
 | Phase 3 | 3-5 周 | 数据扩充 + 平衡 |
 | Phase 4 | 4-6 周 | DLC 系统 |
-| Phase 5 | 3-4 周 | 联机 + Modding + 移动 |
-| 总计 | 14-21 周 | 到北极星 + DLC + 联机 |
+| Phase 5 | 2-3 周 | Modding + 移动 + 音频 |
+| 总计 | 13-20 周 | 到北极星 + DLC |

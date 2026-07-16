@@ -28,7 +28,7 @@ npm run check            # 完整门禁：纯度 + depcruise + 覆盖率（提�
 
 ### 确定性（逻辑层硬约束）
 
-逻辑层禁止 `Math.random()` / `Date.now()` / `performance.now()` / `window` / `document`（`scripts/check-purity.mjs` 扫描强制）。所有随机经 `createRng(seed).fork(branch)`（`src/logic/rng.ts`，mulberry32 + FNV-1a hash）。GameState 不存 Rng 实例，只存 `seed`；存档序列化存 seed，加载后所有 fork 可重建。这保证测试可复现 + 未来联机确定性同步。
+逻辑层禁止 `Math.random()` / `Date.now()` / `performance.now()` / `window` / `document`（`scripts/check-purity.mjs` 扫描强制）。所有随机经 `createRng(seed).fork(branch)`（`src/logic/rng.ts`，mulberry32 + FNV-1a hash）。GameState 不存 Rng 实例，只存 `seed`；存档序列化存 seed，加载后所有 fork 可重建。这保证测试可复现、golden replay 可跨 CI 验证。
 
 ### 不可变状态
 

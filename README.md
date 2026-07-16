@@ -11,7 +11,7 @@ A free, open-source, browser-playable turn-based 4X strategy game inspired by Ci
 
 Existing open-source Civ clones (FreeCiv, Unciv) target older Civ versions and miss Civ VI's two signature mechanics: **district adjacency bonuses** and **the civics tree + policy-card governments**. This project reproduces the full Civ VI core loop — explore, expand, exploit, exterminate — with those signature mechanics, in a browser, for free, with original hand-painted-style art.
 
-The architecture cleanly separates a **deterministic headless logic layer** (pure TypeScript, fully unit-testable, future multiplayer-ready) from a thin render layer — so the game is verifiable and the rules are not coupled to the screen.
+The architecture cleanly separates a **deterministic headless logic layer** (pure TypeScript, fully unit-testable, golden-replay-verifiable) from a thin render layer — so the game is verifiable and the rules are not coupled to the screen.
 
 ## Features
 

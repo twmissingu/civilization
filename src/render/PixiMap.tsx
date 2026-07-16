@@ -7,12 +7,13 @@ import { HEX_DIRECTIONS } from '../types';
 import { findUnit, currentPlayer } from '../logic/state/commands';
 import { cityAt } from '../logic/state/combat';
 import { reachableTiles } from '../logic/state/unitMove';
-import { makeHexTexture, TERRAIN_COLOR, makeCircleTextureFromImage, unitAssetUrl, districtAssetUrl } from './assets';
+import type { Tile } from '../logic/state/mapgen';
+import { makeHexTexture, TERRAIN_COLOR, makeHexTextureFromImage, makeCircleTextureFromImage, unitAssetUrl, districtAssetUrl, terrainAssetUrl, featureAssetUrl } from './assets';
 import { terrainLabel, featureLabel, resourceLabel } from '../logic/state/describe';
 import { RESOURCES } from '../gamedata';
 import type { ResourceCategory } from '../gamedata';
 import type { HexCoord } from '../types';
-import type { PlayerState } from '../logic/state/types';
+import type { PlayerState, UnitState } from '../logic/state/types';
 
 const UNIT_MARK: Record<string, string> = {
   settler: '⌂', builder: '⚒', warrior: '⚔', archer: '弓', slinger: '石',
@@ -81,6 +82,8 @@ export function PixiMap({ onRequestAttack }: PixiMapProps = {}) {
   const appRef = useRef<Application | null>(null);
   const unitTexRef = useRef<Map<string, Texture>>(new Map());
   const districtTexRef = useRef<Map<string, Texture>>(new Map());
+  const terrainTexRef = useRef<Map<string, Texture>>(new Map());
+  const featureTexRef = useRef<Map<string, Texture>>(new Map());
   const terrainLayerRef = useRef<Container | null>(null);
   const dynamicLayerRef = useRef<Container | null>(null);
   const districtsLayerRef = useRef<Container | null>(null);
@@ -107,11 +110,15 @@ export function PixiMap({ onRequestAttack }: PixiMapProps = {}) {
         }
         setStatus('就绪');
         draw();
-        const unitTypes = ['warrior', 'archer', 'settler', 'builder', 'swordsman', 'cavalry', 'slinger', 'knight', 'trireme', 'quadrireme', 'musketman', 'cannon', 'siege_tower'];
+        const unitTypes = ['warrior', 'archer', 'settler', 'builder', 'swordsman', 'cavalry', 'slinger', 'knight', 'catapult', 'trireme', 'quadrireme', 'musketman', 'cannon', 'siege_tower'];
         const districtTypes = ['campus', 'commercial', 'holy', 'industrial', 'encampment', 'theater', 'harbor'];
+        const terrainTypes = ['grassland', 'plains', 'desert', 'tundra', 'snow', 'hills', 'mountain', 'coast', 'ocean'];
+        const featureTypes = ['forest', 'rainforest', 'marsh', 'geothermal', 'oasis', 'floodplains'];
         Promise.allSettled([
           ...unitTypes.map(async (u) => { try { unitTexRef.current.set(u, await makeCircleTextureFromImage(unitAssetUrl(u), DISP * 0.8)); } catch { /* */ } }),
           ...districtTypes.map(async (d) => { try { districtTexRef.current.set(d, await makeCircleTextureFromImage(districtAssetUrl(d), DISP * 0.6)); } catch { /* */ } }),
+          ...terrainTypes.map(async (t) => { try { terrainTexRef.current.set(t, await makeHexTextureFromImage(terrainAssetUrl(t), DISP)); } catch { /* */ } }),
+          ...featureTypes.map(async (f) => { try { featureTexRef.current.set(f, await makeHexTextureFromImage(featureAssetUrl(f), DISP * 0.7)); } catch { /* */ } }),
         ]).then(() => draw());
       })
       .catch((err) => { setStatus('Pixi 初始化失败: ' + (err?.message ?? String(err))); });
@@ -134,11 +141,13 @@ export function PixiMap({ onRequestAttack }: PixiMapProps = {}) {
       districtsLayerRef.current = null;
       tooltipRef.current = null;
     };
+    // 初始化 effect 只需运行一次；draw 依赖的 state/refs 在闭包中访问，不必加入 deps
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
     if (appRef.current) draw();
+    // draw 读取 latest state/ref，依赖项 state + selectedUnitId 已覆盖重绘触发条件
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [state, selectedUnitId]);
 
@@ -198,7 +207,7 @@ export function PixiMap({ onRequestAttack }: PixiMapProps = {}) {
       const p = hexToPixel(t.coord, DISP);
       const cx = p.x + DISP + cam.x;
       const cy = p.y + DISP + cam.y;
-      const tex = makeHexTexture(TERRAIN_COLOR[t.terrain] ?? 0x444444, DISP);
+      const tex = terrainTexRef.current.get(t.terrain) ?? makeHexTexture(TERRAIN_COLOR[t.terrain] ?? 0x444444, DISP);
       const sprite = new Sprite(tex);
       sprite.anchor.set(0.5);
       sprite.x = cx; sprite.y = cy;
@@ -223,6 +232,173 @@ export function PixiMap({ onRequestAttack }: PixiMapProps = {}) {
     }
   }
 
+  function clearLayer(layer: Container) {
+    const removed = layer.removeChildren();
+    for (const child of removed) {
+      child.destroy({ children: true, texture: false });
+    }
+  }
+
+  function renderTile(
+    t: Tile,
+    cx: number,
+    cy: number,
+    player: PlayerState,
+    selectedUnit: UnitState | null,
+    ownerByTile: Map<string, number>,
+    unitByTile: Map<string, UnitState>,
+    isReachable: (c: HexCoord) => boolean,
+    layer: Container
+  ) {
+    // 领土
+    const owner = ownerByTile.get(tileKey(t.coord));
+    if (owner !== undefined) {
+      const ov = new Graphics();
+      const ownerColor = PLAYER_TINT[owner % PLAYER_TINT.length];
+      ov.poly(hexPolyPoints(cx, cy, DISP)).fill({ color: ownerColor, alpha: 0.18 });
+      ov.eventMode = 'none';
+      layer.addChild(ov);
+      // 边界描边：只画与异主或地图外相邻的边
+      const border = new Graphics();
+      const pts = hexPolyPoints(cx, cy, DISP);
+      for (let e = 0; e < 6; e++) {
+        const n = hexAdd(t.coord, HEX_DIRECTIONS[e]);
+        const nOwner = inBounds(n, state.map.bounds) ? ownerByTile.get(tileKey(n)) : undefined;
+        if (nOwner === owner) continue;
+        const i1 = e;
+        const i2 = (e + 1) % 6;
+        border.poly([pts[i1 * 2], pts[i1 * 2 + 1], pts[i2 * 2], pts[i2 * 2 + 1]]).stroke({ width: 1.5, color: ownerColor });
+      }
+      border.eventMode = 'none';
+      layer.addChild(border);
+    }
+    // 地貌（优先加载图片纹理，fallback emoji）
+    if (t.feature) {
+      const fTex = featureTexRef.current.get(t.feature);
+      if (fTex) {
+        const fs = new Sprite(fTex);
+        fs.anchor.set(0.5); fs.x = cx; fs.y = cy - DISP * 0.2;
+        fs.alpha = 0.85;
+        fs.eventMode = 'none';
+        layer.addChild(fs);
+      } else if (FEATURE_MARK[t.feature]) {
+        const ft = new Text({ text: FEATURE_MARK[t.feature]!, style: { fontSize: DISP * 0.9 } });
+        ft.anchor.set(0.5); ft.x = cx; ft.y = cy - DISP * 0.1;
+        ft.eventMode = 'none';
+        layer.addChild(ft);
+      }
+    }
+    // 资源（按类别分色/分图标）
+    if (t.resource) {
+      const def = RESOURCES[t.resource.id];
+      const category = (def?.category as ResourceCategory) ?? 'bonus';
+      const rc = RESOURCE_COLOR[category];
+      const rg = new Graphics();
+      const rx = cx + DISP * 0.4;
+      const ry = cy - DISP * 0.4;
+      if (category === 'bonus') {
+        rg.circle(rx, ry, 2.5).fill(rc);
+      } else if (category === 'luxury') {
+        const s = 2.5;
+        rg.poly([rx, ry - s, rx + s, ry, rx, ry + s, rx - s, ry]).fill(rc);
+      } else {
+        const s = 2.2;
+        rg.rect(rx - s, ry - s, s * 2, s * 2).fill(rc);
+      }
+      rg.eventMode = 'none';
+      layer.addChild(rg);
+    }
+    // 选中/可移动
+    const isSel = selectedUnit && selectedUnit.tile.q === t.coord.q && selectedUnit.tile.r === t.coord.r;
+    const reach = isReachable(t.coord);
+    if (isSel || reach) {
+      const stroke = new Graphics();
+      stroke.poly(hexPolyPoints(cx, cy, DISP)).stroke({ width: 2.5, color: isSel ? 0xffffff : 0xffff00 });
+      stroke.eventMode = 'none';
+      layer.addChild(stroke);
+    }
+    // 城市
+    const city = cityAt(state, t.coord);
+    if (city) {
+      const col = city.ownerId === player.id ? 0x44aaff : 0xff4444;
+      const cg = new Graphics().circle(cx, cy, DISP * 0.5).fill(col).stroke({ width: 1.5, color: 0xffffff });
+      cg.eventMode = 'none';
+      layer.addChild(cg);
+      const popT = new Text({ text: `${city.population}`, style: { fill: '#ffffff', fontSize: 11, fontFamily: 'monospace', fontWeight: 'bold' } });
+      popT.anchor.set(0.5); popT.x = cx; popT.y = cy;
+      popT.eventMode = 'none';
+      layer.addChild(popT);
+    }
+    // 单位
+    const unit = unitByTile.get(tileKey(t.coord));
+    if (unit) {
+      const ownerIdx = state.players.findIndex((pp) => pp.id === unit.ownerId);
+      const ringCol = unit.ownerId === player.id ? 0x44ff44 : (ownerIdx >= 0 ? PLAYER_TINT[ownerIdx % PLAYER_TINT.length] : 0xff4444);
+      const acted = unit.moveLeft === 0 || unit.hasActed;
+      const ring = new Graphics().circle(cx, cy, DISP * 0.72).fill({ color: ringCol, alpha: acted ? 0.4 : 0.9 }).stroke({ width: 1.5, color: 0x000000, alpha: 0.5 });
+      ring.eventMode = 'none';
+      layer.addChild(ring);
+      const uTex = unitTexRef.current.get(unit.type);
+      if (uTex) {
+        const us = new Sprite(uTex);
+        us.anchor.set(0.5); us.x = cx; us.y = cy;
+        us.alpha = acted ? 0.55 : 1;
+        us.eventMode = 'none';
+        layer.addChild(us);
+      } else {
+        const txt = new Text({ text: UNIT_MARK[unit.type] ?? '?', style: { fill: '#ffffff', fontSize: 14, fontFamily: 'monospace', fontWeight: 'bold' } });
+        txt.anchor.set(0.5); txt.x = cx; txt.y = cy + 1;
+        txt.alpha = acted ? 0.55 : 1;
+        txt.eventMode = 'none';
+        layer.addChild(txt);
+      }
+      if (unit.hp < 100) {
+        const hpW = DISP * 1.1;
+        const hpPct = Math.max(0, unit.hp) / 100;
+        const hpBg = new Graphics().rect(cx - hpW / 2, cy - DISP * 0.95, hpW, 3).fill(0x330000);
+        const hpFg = new Graphics().rect(cx - hpW / 2, cy - DISP * 0.95, hpW * hpPct, 3).fill(hpPct > 0.5 ? 0x33ff33 : hpPct > 0.25 ? 0xffaa00 : 0xff3333);
+        hpBg.eventMode = 'none';
+        hpFg.eventMode = 'none';
+        layer.addChild(hpBg); layer.addChild(hpFg);
+      }
+    }
+  }
+
+  function renderDynamicLayer(cam: { x: number; y: number }, player: PlayerState, selectedUnit: UnitState | null) {
+    const layer = dynamicLayerRef.current!;
+    const reachable: HexCoord[] = selectedUnit && selectedUnit.ownerId === player.id
+      ? reachableTiles(state, selectedUnit)
+      : [];
+    const isReachable = (c: HexCoord) => reachable.some((r) => r.q === c.q && r.r === c.r);
+    const ownerByTile = new Map<string, number>();
+    state.players.forEach((p, idx) => { for (const c of p.cities) for (const tile of c.territory) ownerByTile.set(tileKey(tile), idx); });
+    const unitByTile = new Map<string, UnitState>();
+    for (const p of state.players) {
+      for (const u of p.units) {
+        unitByTile.set(tileKey(u.tile), u);
+      }
+    }
+
+    for (const t of state.map.tiles) {
+      const p = hexToPixel(t.coord, DISP);
+      const cx = p.x + DISP + cam.x;
+      const cy = p.y + DISP + cam.y;
+      renderTile(t, cx, cy, player, selectedUnit, ownerByTile, unitByTile, isReachable, layer);
+    }
+  }
+
+  function renderDistrictsLayer(cam: { x: number; y: number }) {
+    const dlayer = districtsLayerRef.current!;
+    for (const p of state.players) for (const c of p.cities) for (const d of c.districts) {
+      const dTex = districtTexRef.current.get(d.type);
+      if (!dTex) continue;
+      const dp = hexToPixel(d.tile, DISP);
+      const ds = new Sprite(dTex); ds.anchor.set(0.5); ds.x = dp.x + DISP + cam.x; ds.y = dp.y + DISP + cam.y;
+      ds.eventMode = 'none';
+      dlayer.addChild(ds);
+    }
+  }
+
   function draw() {
     const app = appRef.current;
     if (!app) return;
@@ -236,142 +412,11 @@ export function PixiMap({ onRequestAttack }: PixiMapProps = {}) {
       rebuildTerrainLayer(cam);
 
       // 清空动态层与区域层（销毁旧 DisplayObject 避免内存累积）
-      const clearLayer = (layer: Container) => {
-        const removed = layer.removeChildren();
-        for (const child of removed) {
-          child.destroy({ children: true, texture: false });
-        }
-      };
       clearLayer(dynamicLayerRef.current!);
       clearLayer(districtsLayerRef.current!);
 
-      const reachable: HexCoord[] = selectedUnit && selectedUnit.ownerId === player.id
-        ? reachableTiles(state, selectedUnit)
-        : [];
-      const isReachable = (c: HexCoord) => reachable.some((r) => r.q === c.q && r.r === c.r);
-      const ownerByTile = new Map<string, number>();
-      state.players.forEach((p, idx) => { for (const c of p.cities) for (const tile of c.territory) ownerByTile.set(tileKey(tile), idx); });
-
-      for (const t of state.map.tiles) {
-        const p = hexToPixel(t.coord, DISP);
-        const cx = p.x + DISP + cam.x;
-        const cy = p.y + DISP + cam.y;
-        const isSel = selectedUnit && selectedUnit.tile.q === t.coord.q && selectedUnit.tile.r === t.coord.r;
-        const reach = isReachable(t.coord);
-        const layer = dynamicLayerRef.current!;
-
-        // 领土
-        const owner = ownerByTile.get(tileKey(t.coord));
-        if (owner !== undefined) {
-          const ov = new Graphics();
-          const ownerColor = PLAYER_TINT[owner % PLAYER_TINT.length];
-          ov.poly(hexPolyPoints(cx, cy, DISP)).fill({ color: ownerColor, alpha: 0.18 });
-          ov.eventMode = 'none';
-          layer.addChild(ov);
-          // 边界描边：只画与异主或地图外相邻的边
-          const border = new Graphics();
-          const pts = hexPolyPoints(cx, cy, DISP);
-          for (let e = 0; e < 6; e++) {
-            const n = hexAdd(t.coord, HEX_DIRECTIONS[e]);
-            const nOwner = inBounds(n, state.map.bounds) ? ownerByTile.get(tileKey(n)) : undefined;
-            if (nOwner === owner) continue;
-            const i1 = e;
-            const i2 = (e + 1) % 6;
-            border.poly([pts[i1 * 2], pts[i1 * 2 + 1], pts[i2 * 2], pts[i2 * 2 + 1]]).stroke({ width: 1.5, color: ownerColor });
-          }
-          border.eventMode = 'none';
-          layer.addChild(border);
-        }
-        // 地貌
-        if (t.feature && FEATURE_MARK[t.feature]) {
-          const ft = new Text({ text: FEATURE_MARK[t.feature]!, style: { fontSize: DISP * 0.9 } });
-          ft.anchor.set(0.5); ft.x = cx; ft.y = cy - DISP * 0.1;
-          ft.eventMode = 'none';
-          layer.addChild(ft);
-        }
-        // 资源（按类别分色/分图标）
-        if (t.resource) {
-          const def = RESOURCES[t.resource.id];
-          const category = (def?.category as ResourceCategory) ?? 'bonus';
-          const rc = RESOURCE_COLOR[category];
-          const rg = new Graphics();
-          const rx = cx + DISP * 0.4;
-          const ry = cy - DISP * 0.4;
-          if (category === 'bonus') {
-            rg.circle(rx, ry, 2.5).fill(rc);
-          } else if (category === 'luxury') {
-            const s = 2.5;
-            rg.poly([rx, ry - s, rx + s, ry, rx, ry + s, rx - s, ry]).fill(rc);
-          } else {
-            const s = 2.2;
-            rg.rect(rx - s, ry - s, s * 2, s * 2).fill(rc);
-          }
-          rg.eventMode = 'none';
-          layer.addChild(rg);
-        }
-        // 选中/可移动
-        if (isSel || reach) {
-          const stroke = new Graphics();
-          stroke.poly(hexPolyPoints(cx, cy, DISP)).stroke({ width: 2.5, color: isSel ? 0xffffff : 0xffff00 });
-          stroke.eventMode = 'none';
-          layer.addChild(stroke);
-        }
-        // 城市
-        const city = cityAt(state, t.coord);
-        if (city) {
-          const col = city.ownerId === player.id ? 0x44aaff : 0xff4444;
-          const cg = new Graphics().circle(cx, cy, DISP * 0.5).fill(col).stroke({ width: 1.5, color: 0xffffff });
-          cg.eventMode = 'none';
-          layer.addChild(cg);
-          const popT = new Text({ text: `${city.population}`, style: { fill: '#ffffff', fontSize: 11, fontFamily: 'monospace', fontWeight: 'bold' } });
-          popT.anchor.set(0.5); popT.x = cx; popT.y = cy;
-          popT.eventMode = 'none';
-          layer.addChild(popT);
-        }
-        // 单位
-        const unit = state.players.flatMap((pp) => pp.units).find((u) => u.tile.q === t.coord.q && u.tile.r === t.coord.r);
-        if (unit) {
-          const ownerIdx = state.players.findIndex((pp) => pp.id === unit.ownerId);
-          const ringCol = unit.ownerId === player.id ? 0x44ff44 : (ownerIdx >= 0 ? PLAYER_TINT[ownerIdx % PLAYER_TINT.length] : 0xff4444);
-          const acted = unit.moveLeft === 0 || unit.hasActed;
-          const ring = new Graphics().circle(cx, cy, DISP * 0.72).fill({ color: ringCol, alpha: acted ? 0.4 : 0.9 }).stroke({ width: 1.5, color: 0x000000, alpha: 0.5 });
-          ring.eventMode = 'none';
-          layer.addChild(ring);
-          const uTex = unitTexRef.current.get(unit.type);
-          if (uTex) {
-            const us = new Sprite(uTex);
-            us.anchor.set(0.5); us.x = cx; us.y = cy;
-            us.alpha = acted ? 0.55 : 1;
-            us.eventMode = 'none';
-            layer.addChild(us);
-          } else {
-            const txt = new Text({ text: UNIT_MARK[unit.type] ?? '?', style: { fill: '#ffffff', fontSize: 14, fontFamily: 'monospace', fontWeight: 'bold' } });
-            txt.anchor.set(0.5); txt.x = cx; txt.y = cy + 1;
-            txt.alpha = acted ? 0.55 : 1;
-            txt.eventMode = 'none';
-            layer.addChild(txt);
-          }
-          if (unit.hp < 100) {
-            const hpW = DISP * 1.1;
-            const hpPct = Math.max(0, unit.hp) / 100;
-            const hpBg = new Graphics().rect(cx - hpW / 2, cy - DISP * 0.95, hpW, 3).fill(0x330000);
-            const hpFg = new Graphics().rect(cx - hpW / 2, cy - DISP * 0.95, hpW * hpPct, 3).fill(hpPct > 0.5 ? 0x33ff33 : hpPct > 0.25 ? 0xffaa00 : 0xff3333);
-            hpBg.eventMode = 'none';
-            hpFg.eventMode = 'none';
-            layer.addChild(hpBg); layer.addChild(hpFg);
-          }
-        }
-      }
-      // 区域图标
-      const dlayer = districtsLayerRef.current!;
-      for (const p of state.players) for (const c of p.cities) for (const d of c.districts) {
-        const dTex = districtTexRef.current.get(d.type);
-        if (!dTex) continue;
-        const dp = hexToPixel(d.tile, DISP);
-        const ds = new Sprite(dTex); ds.anchor.set(0.5); ds.x = dp.x + DISP + cam.x; ds.y = dp.y + DISP + cam.y;
-        ds.eventMode = 'none';
-        dlayer.addChild(ds);
-      }
+      renderDynamicLayer(cam, player, selectedUnit ?? null);
+      renderDistrictsLayer(cam);
     } catch (err) {
       setStatus('渲染错误: ' + (err as Error)?.message);
     }

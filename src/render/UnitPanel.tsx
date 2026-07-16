@@ -3,6 +3,7 @@ import { useGame } from './store';
 import { currentPlayer, findUnit } from '../logic/state/commands';
 import { UNITS, IMPROVEMENTS, CIVILIZATIONS } from '../gamedata';
 import { canBuildImprovement } from '../logic/state/builder';
+import { AssetImage } from './AssetImage';
 import { theme } from './theme';
 import { panelStyle, btnStyle } from './uiStyles';
 
@@ -32,7 +33,10 @@ export function UnitPanel({ onRequestFoundCity }: UnitPanelProps) {
         : [];
     return (
       <div style={panelStyle}>
-        <b>单位</b>：{UNITS[unit.type]?.name}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+          <AssetImage src={`/assets/units/${unit.type}.png`} alt="" width={18} height={18} />
+          <b>{UNITS[unit.type]?.name}</b>
+        </div>
         <div>HP {unit.hp} 移动 {unit.moveLeft}/{UNITS[unit.type]?.move}</div>
         {unit.type === 'settler' && (
           <button

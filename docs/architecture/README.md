@@ -1,7 +1,7 @@
 # 架构工程契约（Architecture）
 
 > 状态：M1 前必须定稿项 = 契约边界/接口/不变量；边界内实现选择（如具体 PRNG 算法）可延后。
-> 本文档定义确定性主接缝的工程契约，是逻辑层可测、可复现、可联机同步的基础。
+> 本文档定义确定性主接缝的工程契约，是逻辑层可测、可复现、golden replay 回放验证的基础。
 > 来源：jiuqing-roles-debate 确定性逻辑引擎工程师 + 前端/渲染架构师提案 + 第 2 轮评审收敛。
 
 ---
@@ -152,7 +152,7 @@ function execute(state: GameState, cmd: GameCommand): { state: GameState; events
 ```
 
 - 只有 `canExecute` 返回 `null` 的命令才 `execute`。
-- `canExecute` 作为独立可测函数暴露：UI 层做按钮可用性判断、未来联机层做服务端校验。
+- `canExecute` 作为独立可测函数暴露：UI 层做按钮可用性判断。
 - 非法命令不影响 RNG 状态（不消费随机数），保证确定性不被探测行为破坏。
 - **execute 错误契约**：`execute` 假定 `canExecute` 已通过；若遇到不可恢复状态（如游戏已结束），抛 `GameAlreadyFinishedError`（`class extends Error`）。合法异常仅此一类（及其明确子类）。
 - 命令 API 被拒时返回 `{ ok: false; error: RuleError }` 而非静默（与 `canExecute` 返回一致）。
@@ -395,4 +395,4 @@ function replay(seed: number, config: GameConfig, commands: GameCommand[]): Game
 - `replay` 内部先 `createInitialState(seed, config)`（含地图生成 RNG fork、初始单位放置），再逐条 `applyCommand`。
 - 难度作为 `GameConfig` 与 `GameState.difficulty` 字段双重携带，保证 golden replay 跨 CI 复现（见 testing §5.1）。
 - 测试框架可导出失败用例的 `(seed, config, commands)` 三元组，直接喂给 replay 复现。
-- 联机同步基础：确定性同步只需广播命令/种子（Phase 5 联机时启用）。
+- golden replay 基础：确定性同步只需 replay seed + 命令序列（等价于广播命令/种子），保证回放完全复现。

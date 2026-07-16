@@ -9,24 +9,36 @@ import { theme } from './theme';
 import { panelStyle, btnStyle } from './uiStyles';
 import { AssetImage } from './AssetImage';
 
+const YIELD_ICON: Record<keyof typeof theme.colors & ('food' | 'production' | 'gold' | 'science' | 'culture' | 'faith'), string> = {
+  food: '🍞',
+  production: '⚒',
+  gold: '💰',
+  science: '📖',
+  culture: '🎭',
+  faith: '⛪',
+};
+
 export function CityPanel() {
   const state = useGame((s) => s.state);
   const command = useGame((s) => s.command);
   const selectedCityId = useGame((s) => s.selectedCityId);
   const player = currentPlayer(state);
   const city = selectedCityId ? findCity(state, selectedCityId) : null;
+  const builtWonderIds = new Set(
+    state.players.flatMap((p) => p.cities.flatMap((c) => c.wonders.map((w) => w.id)))
+  );
 
   if (!city) return null;
 
   if (city.ownerId === player.id) {
     const cy = cityYield(state, city);
     const tokens = [
-      { label: '🍞', value: cy.food, color: theme.colors.food },
-      { label: '⚒', value: cy.production, color: theme.colors.production },
-      { label: '💰', value: cy.gold, color: theme.colors.gold },
-      { label: '📖', value: cy.science, color: theme.colors.science },
-      { label: '🎭', value: cy.culture, color: theme.colors.culture },
-      { label: '⛪', value: cy.faith, color: theme.colors.faith },
+      { label: YIELD_ICON.food, value: cy.food, color: theme.colors.food },
+      { label: YIELD_ICON.production, value: cy.production, color: theme.colors.production },
+      { label: YIELD_ICON.gold, value: cy.gold, color: theme.colors.gold },
+      { label: YIELD_ICON.science, value: cy.science, color: theme.colors.science },
+      { label: YIELD_ICON.culture, value: cy.culture, color: theme.colors.culture },
+      { label: YIELD_ICON.faith, value: cy.faith, color: theme.colors.faith },
     ];
 
     return (
@@ -60,10 +72,14 @@ export function CityPanel() {
                 : q.id;
             const pct = cost > 0 && isFinite(cost) ? Math.min(100, Math.round((q.progress / cost) * 100)) : 0;
             const eta = turnsToCompleteProduction(state, city, cost, q.progress);
+            const iconSrc = q.kind === 'unit' ? `/assets/units/${q.id}.png` : q.kind === 'building' ? `/assets/buildings/${q.id}.png` : q.kind === 'wonder' ? `/assets/wonders/${q.id}.png` : null;
             return (
               <div key={i} style={{ fontSize: 11 }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                  <span>{name}</span>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3 }}>
+                    {iconSrc && <AssetImage src={iconSrc} alt="" width={14} height={14} />}
+                    {name}
+                  </span>
                   <span style={{ color: theme.colors.textDim }}>{pct}% · {formatTurns(eta)}</span>
                 </div>
                 <div style={{ height: 4, background: '#333', borderRadius: theme.borderRadius, marginTop: 1 }}>
@@ -87,9 +103,10 @@ export function CityPanel() {
           .map((u) => (
             <button
               key={u.id}
-              style={{ ...btnStyle, margin: 1, fontSize: 11 }}
+              style={{ ...btnStyle, margin: 1, fontSize: 11, display: 'inline-flex', alignItems: 'center', gap: 3 }}
               onClick={() => command({ kind: 'trainUnit', cityId: city.id, unitType: u.id })}
             >
+              <AssetImage src={`/assets/units/${u.id}.png`} alt="" width={14} height={14} />
               {u.name}
             </button>
           ))}
@@ -100,7 +117,7 @@ export function CityPanel() {
               (!b.unlockTech || player.researchedTechs.includes(b.unlockTech)) &&
               (!b.unlockCivic || player.researchedCivics.includes(b.unlockCivic)) &&
               !city.buildings.includes(b.id) &&
-              b.district === 'city_center'
+              (b.district === 'city_center' || city.districts.some((d) => d.type === b.district))
           )
           .slice(0, 6)
           .map((b) => (
@@ -111,6 +128,26 @@ export function CityPanel() {
             >
               <AssetImage src={`/assets/buildings/${b.id}.png`} alt="" width={16} height={16} />
               {b.name}
+            </button>
+          ))}
+        <div style={{ marginTop: 6 }}>建造奇观：</div>
+        {Object.values(WONDERS)
+          .filter(
+            (w) =>
+              (!w.unlockTech || player.researchedTechs.includes(w.unlockTech)) &&
+              (!w.unlockCivic || player.researchedCivics.includes(w.unlockCivic)) &&
+              !builtWonderIds.has(w.id) &&
+              !city.queue.some((q) => q.kind === 'wonder' && q.id === w.id)
+          )
+          .slice(0, 5)
+          .map((w) => (
+            <button
+              key={w.id}
+              style={{ ...btnStyle, margin: 1, fontSize: 11, background: theme.colors.government, display: 'inline-flex', alignItems: 'center', gap: 3 }}
+              onClick={() => command({ kind: 'buildWonder', cityId: city.id, wonderType: w.id, tile: city.tile })}
+            >
+              <AssetImage src={`/assets/wonders/${w.id}.png`} alt="" width={16} height={16} />
+              {w.name} ({w.cost})
             </button>
           ))}
       </div>

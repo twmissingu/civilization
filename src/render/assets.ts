@@ -192,3 +192,8 @@ export function districtAssetUrl(d: string): string {
 export function wonderAssetUrl(id: string): string {
   return `/assets/wonders/${id}.png`;
 }
+
+/** 地貌 -> public 资产 URL */
+export function featureAssetUrl(id: string): string {
+  return `/assets/features/${id}.png`;
+}
