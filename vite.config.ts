@@ -5,7 +5,7 @@ export default defineConfig({
   plugins: [react()],
   test: {
     environment: 'node',
-    include: ['tests/**/*.spec.ts'],
+    include: ['tests/**/*.{spec,test}.{ts,tsx}'],
     coverage: {
       provider: 'v8',
       include: ['src/logic/**'],

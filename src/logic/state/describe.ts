@@ -6,6 +6,7 @@ import { cityAt } from './combat';
 import { tileYield } from './yield';
 import { IMPROVEMENTS, UNITS } from '../../gamedata';
 import { hexEquals } from '../hex';
+import type { Yield } from '../../gamedata';
 
 const TERRAIN_LABELS: Record<string, string> = {
   grassland: '草原', plains: '平原', hills: '丘陵', desert: '沙漠', tundra: '冻土',
@@ -97,6 +98,29 @@ export function improvementDescription(improvement: string): string {
   return IMPROVEMENT_DESCRIPTIONS[improvement] ?? '未知改良';
 }
 
+interface YieldLabel {
+  key: keyof Yield;
+  short: string;
+  full: string;
+}
+
+const YIELD_LABELS: YieldLabel[] = [
+  { key: 'food', short: '粮', full: '食物' },
+  { key: 'production', short: '产', full: '产能' },
+  { key: 'gold', short: '金', full: '金币' },
+  { key: 'science', short: '科', full: '科技' },
+  { key: 'culture', short: '文', full: '文化' },
+  { key: 'faith', short: '信', full: '信仰' },
+];
+
+function formatYield(y: Yield, short: boolean): string {
+  const labels = short ? YIELD_LABELS.map((l) => ({ ...l, label: l.short })) : YIELD_LABELS.map((l) => ({ ...l, label: l.full }));
+  const parts = labels
+    .filter(({ key }) => y[key] !== 0)
+    .map(({ key, label }) => `${label}${y[key]}`);
+  return parts.join(short ? ' ' : ', ');
+}
+
 /** 返回地块的详细描述（含地形、特征、资源、产出、单位、城市） */
 export function describeTile(state: GameState, coord: HexCoord): string {
   const t = getTile(state.map, coord);
@@ -135,15 +159,9 @@ export function describeTile(state: GameState, coord: HexCoord): string {
   
   // 产出
   const y = tileYield(t, true);
-  const yieldParts: string[] = [];
-  if (y.food) yieldParts.push(`食物${y.food}`);
-  if (y.production) yieldParts.push(`产能${y.production}`);
-  if (y.gold) yieldParts.push(`金币${y.gold}`);
-  if (y.science) yieldParts.push(`科技${y.science}`);
-  if (y.culture) yieldParts.push(`文化${y.culture}`);
-  if (y.faith) yieldParts.push(`信仰${y.faith}`);
-  if (yieldParts.length > 0) {
-    parts.push(`产出: ${yieldParts.join(', ')}`);
+  const yieldText = formatYield(y, false);
+  if (yieldText) {
+    parts.push(`产出: ${yieldText}`);
   }
   
   // 城市
@@ -186,15 +204,9 @@ export function describeTileShort(state: GameState, coord: HexCoord): string {
   
   // 产出
   const y = tileYield(t, true);
-  const yieldParts: string[] = [];
-  if (y.food) yieldParts.push(`粮${y.food}`);
-  if (y.production) yieldParts.push(`产${y.production}`);
-  if (y.gold) yieldParts.push(`金${y.gold}`);
-  if (y.science) yieldParts.push(`科${y.science}`);
-  if (y.culture) yieldParts.push(`文${y.culture}`);
-  if (y.faith) yieldParts.push(`信${y.faith}`);
-  if (yieldParts.length > 0) {
-    parts.push(yieldParts.join(' '));
+  const yieldText = formatYield(y, true);
+  if (yieldText) {
+    parts.push(yieldText);
   }
   
   // 城市和单位

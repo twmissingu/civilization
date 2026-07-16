@@ -1,5 +1,5 @@
 // 工具提示组件：为按钮和图标提供悬停说明
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { theme } from './theme';
 
@@ -19,7 +19,7 @@ export function Tooltip({ children, content, position = 'top', delay = 300 }: To
   const triggerRef = useRef<HTMLDivElement>(null);
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
 
-  const computePosition = () => {
+  const computePosition = useCallback(() => {
     if (!triggerRef.current) return;
     const rect = triggerRef.current.getBoundingClientRect();
     const vw = window.innerWidth;
@@ -50,7 +50,7 @@ export function Tooltip({ children, content, position = 'top', delay = 300 }: To
 
     setCoords({ x, y });
     setActualPosition(pos);
-  };
+  }, [position]);
 
   const showTooltip = () => {
     timeoutRef.current = setTimeout(() => {
@@ -73,6 +73,17 @@ export function Tooltip({ children, content, position = 'top', delay = 300 }: To
       }
     };
   }, []);
+
+  useEffect(() => {
+    if (!isVisible) return;
+    const handler = () => computePosition();
+    window.addEventListener('resize', handler);
+    window.addEventListener('scroll', handler, true);
+    return () => {
+      window.removeEventListener('resize', handler);
+      window.removeEventListener('scroll', handler, true);
+    };
+  }, [isVisible, computePosition]);
 
   const getTooltipStyle = (): React.CSSProperties => {
     const baseStyle: React.CSSProperties = {
@@ -310,15 +321,7 @@ function getDomainName(domain: string): string {
 }
 
 function getYieldColor(key: string): string {
-  const colors: Record<string, string> = {
-    food: '#8f8',
-    production: '#f88',
-    gold: '#ffd700',
-    science: '#4af',
-    culture: '#a8f',
-    faith: '#fff',
-  };
-  return colors[key] || '#ccc';
+  return (theme.colors as Record<string, string>)[key] ?? '#ccc';
 }
 
 function getYieldName(key: string): string {

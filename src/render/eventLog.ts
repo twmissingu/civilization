@@ -71,10 +71,12 @@ export function formatEvent(state: GameState, event: GameEvent): string {
       const killed = getBool(p, 'defenderKilled');
       const damage = getNumber(p, 'defenderDamage');
       const defenderTile = getCoord(p, 'defenderTile', unitById(state, defenderId)?.tile ?? { q: 0, r: 0 });
+      const attackerOwner = unitById(state, attackerId)?.ownerId ?? '';
+      const defenderOwner = unitById(state, defenderId)?.ownerId ?? '';
       if (killed) {
-        return `第 ${event.turn} 回合 · ${civName(state, playerById(state, attackerId)?.id ?? '')} 在 ${coordStr(defenderTile)} 击败 ${civName(state, unitById(state, defenderId)?.ownerId ?? '')} ${unitName(state, defenderId)}`;
+        return `第 ${event.turn} 回合 · ${civName(state, attackerOwner)} 在 ${coordStr(defenderTile)} 击败 ${civName(state, defenderOwner)} ${unitName(state, defenderId)}`;
       }
-      return `第 ${event.turn} 回合 · ${civName(state, playerById(state, attackerId)?.id ?? '')} ${unitName(state, attackerId)} 攻击 ${civName(state, playerById(state, defenderId)?.id ?? '')} ${unitName(state, defenderId)}，造成 ${damage} 伤害`;
+      return `第 ${event.turn} 回合 · ${civName(state, attackerOwner)} ${unitName(state, attackerId)} 攻击 ${civName(state, defenderOwner)} ${unitName(state, defenderId)}，造成 ${damage} 伤害`;
     }
     case 'CityAttacked': {
       const attackerId = getString(p, 'attackerId');

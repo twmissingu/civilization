@@ -2,18 +2,17 @@
 import { useEffect, useRef, useState } from 'react';
 import { Application, Container, Graphics, Text, Polygon, Sprite, Texture } from 'pixi.js';
 import { useGame } from './store';
-import { hexToPixel, hexNeighbors, hexAdd, inBounds } from '../logic/hex';
+import { hexToPixel, hexAdd, inBounds } from '../logic/hex';
 import { HEX_DIRECTIONS } from '../types';
 import { findUnit, currentPlayer } from '../logic/state/commands';
 import { cityAt } from '../logic/state/combat';
-import type { GameMap } from '../logic/state/mapgen';
-import { tileMoveCost } from '../logic/state/unitMove';
+import { reachableTiles } from '../logic/state/unitMove';
 import { makeHexTexture, TERRAIN_COLOR, makeCircleTextureFromImage, unitAssetUrl, districtAssetUrl } from './assets';
 import { terrainLabel, featureLabel, resourceLabel } from '../logic/state/describe';
 import { RESOURCES } from '../gamedata';
 import type { ResourceCategory } from '../gamedata';
 import type { HexCoord } from '../types';
-import type { PlayerState, GameState, UnitState } from '../logic/state/types';
+import type { PlayerState } from '../logic/state/types';
 
 const UNIT_MARK: Record<string, string> = {
   settler: '⌂', builder: '⚒', warrior: '⚔', archer: '弓', slinger: '石',
@@ -42,35 +41,6 @@ function hexPolyPoints(cx: number, cy: number, size: number): number[] {
 
 function tileKey(c: HexCoord): string {
   return `${c.q},${c.r}`;
-}
-
-function reachableTiles(state: GameState, unit: UnitState): HexCoord[] {
-  const start = unit.tile;
-  const visited = new Map<string, { coord: HexCoord; cost: number }>();
-  visited.set(tileKey(start), { coord: start, cost: 0 });
-  const queue: { coord: HexCoord; cost: number }[] = [{ coord: start, cost: 0 }];
-  let head = 0;
-  while (head < queue.length) {
-    const current = queue[head++];
-    for (const n of hexNeighbors(current.coord)) {
-      if (!inBounds(n, state.map.bounds)) continue;
-      const cost = tileMoveCost(state, n);
-      if (!isFinite(cost)) continue;
-      const total = current.cost + cost;
-      if (total > unit.moveLeft) continue;
-      const key = tileKey(n);
-      const existing = visited.get(key);
-      if (existing && existing.cost <= total) continue;
-      visited.set(key, { coord: n, cost: total });
-      queue.push({ coord: n, cost: total });
-    }
-  }
-  const result: HexCoord[] = [];
-  for (const [key, v] of visited) {
-    if (key === tileKey(start)) continue;
-    result.push(v.coord);
-  }
-  return result;
 }
 
 function cameraOffsetFor(player: PlayerState | undefined, bounds: { width: number; height: number }, canvasW: number, canvasH: number): { x: number; y: number } {
@@ -115,8 +85,6 @@ export function PixiMap({ onRequestAttack }: PixiMapProps = {}) {
   const dynamicLayerRef = useRef<Container | null>(null);
   const districtsLayerRef = useRef<Container | null>(null);
   const tooltipRef = useRef<Text | null>(null);
-  const terrainSpritesRef = useRef<Map<string, Sprite>>(new Map());
-  const lastMapRef = useRef<GameMap | null>(null);
   const [status, setStatus] = useState<string>('加载中…');
   const state = useGame((s) => s.state);
   const selectedUnitId = useGame((s) => s.selectedUnitId);
@@ -165,8 +133,6 @@ export function PixiMap({ onRequestAttack }: PixiMapProps = {}) {
       dynamicLayerRef.current = null;
       districtsLayerRef.current = null;
       tooltipRef.current = null;
-      terrainSpritesRef.current.clear();
-      lastMapRef.current = null;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -228,7 +194,6 @@ export function PixiMap({ onRequestAttack }: PixiMapProps = {}) {
   function rebuildTerrainLayer(cam: { x: number; y: number }) {
     const layer = terrainLayerRef.current!;
     layer.removeChildren();
-    terrainSpritesRef.current.clear();
     for (const t of state.map.tiles) {
       const p = hexToPixel(t.coord, DISP);
       const cx = p.x + DISP + cam.x;
@@ -255,17 +220,6 @@ export function PixiMap({ onRequestAttack }: PixiMapProps = {}) {
         if (tooltipRef.current) tooltipRef.current.alpha = 0;
       });
       layer.addChild(sprite);
-      terrainSpritesRef.current.set(tileKey(t.coord), sprite);
-    }
-  }
-
-  function updateTerrainPositions(cam: { x: number; y: number }) {
-    for (const t of state.map.tiles) {
-      const sprite = terrainSpritesRef.current.get(tileKey(t.coord));
-      if (!sprite) continue;
-      const p = hexToPixel(t.coord, DISP);
-      sprite.x = p.x + DISP + cam.x;
-      sprite.y = p.y + DISP + cam.y;
     }
   }
 
@@ -278,14 +232,8 @@ export function PixiMap({ onRequestAttack }: PixiMapProps = {}) {
       const cam = cameraOffsetFor(player, state.map.bounds, app.screen.width, app.screen.height);
       const selectedUnit = selectedUnitId ? findUnit(state, selectedUnitId) : null;
 
-      // 地形层：地图变化时重建，否则只更新位置
-      const mapChanged = lastMapRef.current !== state.map;
-      if (mapChanged) {
-        rebuildTerrainLayer(cam);
-        lastMapRef.current = state.map;
-      } else {
-        updateTerrainPositions(cam);
-      }
+      // 地形层：每次直接重建（state.map 因 structuredClone 永远为新引用，复用优化无效）
+      rebuildTerrainLayer(cam);
 
       // 清空动态层与区域层（销毁旧 DisplayObject 避免内存累积）
       const clearLayer = (layer: Container) => {

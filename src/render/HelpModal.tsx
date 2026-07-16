@@ -1,6 +1,7 @@
 // 帮助模态框：规则、快速入门、图例、操作说明、胜利条件、术语表、提示
 import { useState, useEffect, useRef } from 'react';
 import { TERRAINS, FEATURES, RESOURCES } from '../gamedata';
+import { terrainLabel, featureLabel, resourceLabel } from '../logic/state/describe';
 import { theme } from './theme';
 
 interface HelpModalProps {
@@ -251,7 +252,7 @@ function LegendContent() {
         {Object.values(TERRAINS).filter(t => !t.impassable).map(terrain => (
           <div key={terrain.id} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '2px 4px', background: theme.colors.bgCard, borderRadius: theme.borderRadius }}>
             <div style={{ width: 12, height: 12, borderRadius: 2, background: getTerrainColor(terrain.id) }} />
-            <span>{getTerrainName(terrain.id)}</span>
+            <span>{terrainLabel(terrain.id)}</span>
           </div>
         ))}
       </div>
@@ -261,7 +262,7 @@ function LegendContent() {
         {Object.values(FEATURES).map(feature => (
           <div key={feature.id} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '2px 4px', background: theme.colors.bgCard, borderRadius: theme.borderRadius }}>
             <span>{getFeatureIcon(feature.id)}</span>
-            <span>{getFeatureName(feature.id)}</span>
+            <span>{featureLabel(feature.id)}</span>
           </div>
         ))}
       </div>
@@ -271,7 +272,7 @@ function LegendContent() {
         {Object.values(RESOURCES).map(resource => (
           <div key={resource.id} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '2px 4px', background: theme.colors.bgCard, borderRadius: theme.borderRadius }}>
             <span>{getResourceIcon(resource.id)}</span>
-            <span>{getResourceName(resource.id)}</span>
+            <span>{resourceLabel(resource.id)}</span>
             <span style={{ color: theme.colors.textDim, fontSize: 10 }}>({getResourceCategoryName(resource.category)})</span>
           </div>
         ))}
@@ -470,20 +471,6 @@ function getTerrainColor(id: string): string {
   return colors[id] || '#888';
 }
 
-function getTerrainName(id: string): string {
-  const names: Record<string, string> = {
-    grassland: '草地',
-    plains: '平原',
-    hills: '丘陵',
-    desert: '沙漠',
-    tundra: '冻土',
-    snow: '雪地',
-    coast: '海岸',
-    ocean: '海洋',
-  };
-  return names[id] || id;
-}
-
 function getFeatureIcon(id: string): string {
   const icons: Record<string, string> = {
     forest: '🌲',
@@ -494,18 +481,6 @@ function getFeatureIcon(id: string): string {
     floodplains: '🌊',
   };
   return icons[id] || '❓';
-}
-
-function getFeatureName(id: string): string {
-  const names: Record<string, string> = {
-    forest: '森林',
-    rainforest: '雨林',
-    marsh: '沼泽',
-    geothermal: '地热',
-    oasis: '绿洲',
-    floodplains: '泛滥平原',
-  };
-  return names[id] || id;
 }
 
 function getResourceIcon(id: string): string {
@@ -521,21 +496,6 @@ function getResourceIcon(id: string): string {
     silk: '🧵',
   };
   return icons[id] || '❓';
-}
-
-function getResourceName(id: string): string {
-  const names: Record<string, string> = {
-    cattle: '牛',
-    sheep: '羊',
-    wheat: '小麦',
-    copper: '铜',
-    stone: '石头',
-    iron: '铁',
-    horse: '马',
-    spice: '香料',
-    silk: '丝绸',
-  };
-  return names[id] || id;
 }
 
 function getResourceCategoryName(category: string): string {

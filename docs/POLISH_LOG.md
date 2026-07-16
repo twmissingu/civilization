@@ -127,3 +127,28 @@
 
 ## 第二轮收敛判定
 7 轮后焦点（美术+平衡+UX）均已推进：美术 67->94、平衡（AI 扩张）、UX（战斗预览+胜利进度+面板）；全维度 ≥8（玩法9/视觉9/性能8/可靠9/代码8/测试8）。终止迭代。
+
+---
+
+# 第三轮打磨（v0.2.0 已发布；聚焦：稳定现有 HUD/UX 重构 + 修复测试；上限 10 轮）
+
+## Round 0 基线（第三轮，工作区有进行中的 P0 HUD/UX 重构）
+
+| 维度 | 分 | 证据 |
+|------|---|------|
+| 玩法完整性 | 9 | 全机制 + 新增 `reachableTiles`/日志上限/formatYield 重构 |
+| 视觉与音效 | 9 | 94 资产 + 胜利进度面板 + 战斗预览，UI 组件已提取为独立文件 |
+| 性能 | 8 | <3s 基准 + 日志上限 1000 防无限增长 |
+| 可靠性 | 7 | ↓ combat 事件文明名解析 bug + 4 测试失败 |
+| 代码质量 | 8 | App.tsx ~600→~100 行，query.ts/describe.ts 重构，关注点分离 |
+| 测试覆盖 | 6 | ↓ 141 测试中 4 失败（eventLog + TurnTodoPanel） |
+
+## Round 1（第三轮）- 测试覆盖（完成）
+- 改进：① `formatEvent` CombatResolved 修复 — 通过 `unitById(attackerId)?.ownerId` 代替错误的 `playerById(unitId)` 查找攻击方/防御方所属文明 ② TurnTodoPanel 测试修复 — `fillPolicySlots` 排除策略卡干扰 + `within(container)` 限定查询范围避免跨测试 DOM 泄漏
+- 体验痛点：直接在代码走读中定位，无终端用户影响
+- 评分：测试覆盖 6→8（141/141 全绿），可靠性 7→9（bug 修复后回归正常）
+- 验证：npm test 141/141、npm run build、npm run check:purity、depcruise 全绿
+- 变更：`src/render/eventLog.ts`、`tests/render/TurnTodoPanel.spec.tsx`
+
+## 第三轮 Round 1 收敛判定
+所有维度 ≥8，未完成 P0/P1 任务。本轮达成"稳定可用"（修复+测试全绿）。按收敛决策树检测：consecutiveSkips=0，所有维度≥7，无可交付阻断。**建议终止迭代**——v0.2.0 状态稳定，后续可转 v0.3.0 开发周期（补美术/平衡专项/视口剔除）。

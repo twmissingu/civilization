@@ -94,6 +94,36 @@ export function findPath(state: GameState, unit: UnitState, to: HexCoord): HexCo
   return null;
 }
 
+/** 返回单位在当前移动力下可到达的所有相邻格子（BFS） */
+export function reachableTiles(state: GameState, unit: UnitState): HexCoord[] {
+  const start = unit.tile;
+  const visited = new Map<string, { coord: HexCoord; cost: number }>();
+  visited.set(`${start.q},${start.r}`, { coord: start, cost: 0 });
+  const queue: { coord: HexCoord; cost: number }[] = [{ coord: start, cost: 0 }];
+  let head = 0;
+  while (head < queue.length) {
+    const current = queue[head++];
+    for (const n of hexNeighbors(current.coord)) {
+      if (!inBounds(n, state.map.bounds)) continue;
+      const cost = tileMoveCost(state, n);
+      if (!isFinite(cost)) continue;
+      const total = current.cost + cost;
+      if (total > unit.moveLeft) continue;
+      const key = `${n.q},${n.r}`;
+      const existing = visited.get(key);
+      if (existing && existing.cost <= total) continue;
+      visited.set(key, { coord: n, cost: total });
+      queue.push({ coord: n, cost: total });
+    }
+  }
+  const result: HexCoord[] = [];
+  for (const [key, v] of visited) {
+    if (key === `${start.q},${start.r}`) continue;
+    result.push(v.coord);
+  }
+  return result;
+}
+
 /** 执行移动：沿路径推进，消耗移动力，遇 ZOC 停步 */
 export function moveUnit(state: GameState, unit: UnitState, path: HexCoord[]): void {
   const def = UNITS[unit.type];

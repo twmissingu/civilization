@@ -210,7 +210,20 @@ export function applyCommand(state: GameState, cmd: GameCommand): { state: GameS
         if (targetUnit) {
           const defenderTile = targetUnit.tile;
           const r = resolveAttack(s, u, targetUnit);
-          events.push({ kind: 'CombatResolved', turn: s.turn, payload: { attackerId: u.id, defenderId: targetUnit.id, defenderTile, ...r } });
+          events.push({
+            kind: 'CombatResolved',
+            turn: s.turn,
+            payload: {
+              attackerId: u.id,
+              attackerOwnerId: u.ownerId,
+              attackerType: u.type,
+              defenderId: targetUnit.id,
+              defenderOwnerId: targetUnit.ownerId,
+              defenderType: targetUnit.type,
+              defenderTile,
+              ...r,
+            },
+          });
         } else if (targetCity) {
           const r = resolveAttackCity(s, u, targetCity);
           events.push({ kind: 'CityAttacked', turn: s.turn, payload: { attackerId: u.id, cityId: targetCity.id, ...r } });
@@ -285,6 +298,10 @@ export function applyCommand(state: GameState, cmd: GameCommand): { state: GameS
   }
   if (events.length > 0) {
     s.log.push(...events);
+  }
+  const MAX_LOG_SIZE = 1000;
+  if (s.log.length > MAX_LOG_SIZE) {
+    s.log = s.log.slice(s.log.length - MAX_LOG_SIZE);
   }
   return { state: s, events };
 }
