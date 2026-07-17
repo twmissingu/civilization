@@ -44,7 +44,11 @@ function tileKey(c: HexCoord): string {
   return `${c.q},${c.r}`;
 }
 
-function cameraOffsetFor(player: PlayerState | undefined, bounds: { width: number; height: number }, canvasW: number, canvasH: number): { x: number; y: number } {
+function cameraOffsetFor(player: PlayerState | undefined, bounds: { width: number; height: number }, canvasW: number, canvasH: number, cameraTarget?: HexCoord | null): { x: number; y: number } {
+  if (cameraTarget) {
+    const p = hexToPixel(cameraTarget, DISP);
+    return { x: canvasW / 2 - (p.x + DISP), y: canvasH / 2 - (p.y + DISP) };
+  }
   if (!player) return { x: 0, y: 0 };
   const centers: { x: number; y: number }[] = [];
   for (const u of player.units) {
@@ -92,6 +96,7 @@ export function PixiMap({ onRequestAttack }: PixiMapProps = {}) {
   const [status, setStatus] = useState<string>('加载中…');
   const state = useGame((s) => s.state);
   const selectedUnitId = useGame((s) => s.selectedUnitId);
+  const cameraTarget = useGame((s) => s.cameraTarget);
   const command = useGame((s) => s.command);
   const selectUnit = useGame((s) => s.selectUnit);
   const selectCity = useGame((s) => s.selectCity);
@@ -417,7 +422,7 @@ export function PixiMap({ onRequestAttack }: PixiMapProps = {}) {
     try {
       ensureLayers(app);
       const player = currentPlayer(state);
-      const cam = cameraOffsetFor(player, state.map.bounds, app.screen.width, app.screen.height);
+      const cam = cameraOffsetFor(player, state.map.bounds, app.screen.width, app.screen.height, cameraTarget);
       const selectedUnit = selectedUnitId ? findUnit(state, selectedUnitId) : null;
       const vb = viewportHexBounds(cam, app.screen.width, app.screen.height, state.map.bounds, DISP, 2);
 

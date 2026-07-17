@@ -29,7 +29,7 @@ export function EventLogPanel() {
         {[...eventLog].reverse().map((e, i) => (
           <div
             key={`${e.kind}-${e.turn}-${i}`}
-            style={{ fontSize: 11, color: '#fc8', padding: '2px 0', borderBottom: `1px solid ${theme.colors.border}` }}
+            style={{ fontSize: 11, color: theme.colors.warning, padding: '2px 0', borderBottom: `1px solid ${theme.colors.border}` }}
           >
             {formatEvent(state, e)}
           </div>

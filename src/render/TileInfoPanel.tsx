@@ -23,7 +23,7 @@ export function TileInfoPanel() {
         const pv = previewCombat(state, unit.id, hoveredTile);
         if (!pv) return null;
         return (
-          <div style={{ fontSize: 11, color: '#fc8', marginTop: 4 }}>
+          <div style={{ fontSize: 11, color: theme.colors.warning, marginTop: 4 }}>
             战斗：我 CS{pv.attackerCS} vs 敌 CS{pv.defenderCS}
             {pv.target === 'unit' ? `（HP${pv.defenderHp}）预计伤害 ${pv.estDamage}` : '（城市）'}
           </div>

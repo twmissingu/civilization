@@ -8,6 +8,7 @@ import { VictoryBanner } from './VictoryBanner';
 import { EventLogOverlay } from './EventLogOverlay';
 import { HelpModal } from './HelpModal';
 import { ConfirmDialogManager, type PendingConfirm } from './ConfirmDialogManager';
+import { Minimap } from './Minimap';
 import { useKeyboardShortcuts } from './useKeyboardShortcuts';
 import { currentPlayer } from '../logic/state/commands';
 import { playerYield } from '../logic/state/yield';
@@ -112,7 +113,7 @@ export function App() {
       <EventLogOverlay />
 
       <div style={{ display: 'flex', flex: 1, overflow: 'hidden' }}>
-        <div style={{ flex: 1, overflow: 'hidden', padding: 0 }}>
+        <div style={{ flex: 1, overflow: 'hidden', padding: 0, position: 'relative' }}>
           <PixiMap
             onRequestAttack={(targetTile) => {
               if (selectedUnitId) {
@@ -120,6 +121,7 @@ export function App() {
               }
             }}
           />
+          <Minimap />
         </div>
         <Sidebar
           researchRef={researchRef}

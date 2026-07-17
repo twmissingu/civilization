@@ -28,7 +28,7 @@ export const ResearchPanel = forwardRef<HTMLDivElement>(function ResearchPanel(_
     <div ref={ref} style={{ marginBottom: theme.spacing.md }}>
       <b>研究</b>：{current ? TECHS[current.techId]?.name : '无'} ({researchProgress})
       {current && (
-        <div style={{ height: 4, background: '#333', borderRadius: theme.borderRadius, marginTop: 4 }}>
+        <div style={{ height: 4, background: theme.colors.progressTrack, borderRadius: theme.borderRadius, marginTop: 4 }}>
           <div
             style={{
               height: 4,

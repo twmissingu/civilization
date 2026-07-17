@@ -28,7 +28,7 @@ export const CivicsPanel = forwardRef<HTMLDivElement>(function CivicsPanel(_, re
     <div ref={ref} style={{ marginBottom: theme.spacing.md }}>
       <b>市政</b>：{current ? `${CIVICS[current.civicId]?.name} (${civicProgress})` : '无'}
       {current && (
-        <div style={{ height: 4, background: '#333', borderRadius: theme.borderRadius, marginTop: 4 }}>
+        <div style={{ height: 4, background: theme.colors.progressTrack, borderRadius: theme.borderRadius, marginTop: 4 }}>
           <div
             style={{
               height: 4,

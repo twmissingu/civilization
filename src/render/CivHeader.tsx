@@ -46,7 +46,7 @@ export function CivHeader() {
           <AssetImage src="/assets/victory/domination.png" alt="" width={12} height={12} />
           统治：剩余首都 {state.players.filter((p) => p.id !== player.id && p.capitalCityId).length}
         </div>
-        <div style={{ color: '#fc8' }}>
+        <div style={{ color: theme.colors.warning }}>
           分数：{playerScoreValue} · 排名 {rank}/{state.players.length}
         </div>
       </div>

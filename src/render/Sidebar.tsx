@@ -40,8 +40,6 @@ export function Sidebar({ researchRef, civicRef, onRequestWar, onRequestFoundCit
         fontFamily: theme.fontFamily,
       }}
     >
-      <CivHeader />
-      <EventLogPanel />
       <TurnTodoPanel
         player={player}
         onSelectUnit={selectUnit}
@@ -49,13 +47,15 @@ export function Sidebar({ researchRef, civicRef, onRequestWar, onRequestFoundCit
         onOpenResearch={scrollToResearch}
         onOpenCivics={scrollToCivics}
       />
+      <UnitPanel onRequestFoundCity={onRequestFoundCity} />
+      <CityPanel />
+      <TileInfoPanel />
+      <CivHeader />
       <ResearchPanel ref={researchRef} />
       <CivicsPanel ref={civicRef} />
       <GovernmentPanel />
       <DiplomacyPanel onRequestWar={onRequestWar} />
-      <UnitPanel onRequestFoundCity={onRequestFoundCity} />
-      <CityPanel />
-      <TileInfoPanel />
+      <EventLogPanel />
     </div>
   );
 }

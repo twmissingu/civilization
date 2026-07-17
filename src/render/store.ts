@@ -27,6 +27,7 @@ interface GameStore {
   selectedUnitId: string | null;
   selectedCityId: string | null;
   hoveredTile: HexCoord | null;
+  cameraTarget: HexCoord | null;
   message: string;
   eventLog: GameEvent[];
   command: (cmd: GameCommand) => void;
@@ -44,6 +45,7 @@ export const useGame = create<GameStore>((set, get) => ({
   selectedUnitId: null,
   selectedCityId: null,
   hoveredTile: null,
+  cameraTarget: null,
   message: '',
   eventLog: [],
   command: (cmd) => {
@@ -68,15 +70,24 @@ export const useGame = create<GameStore>((set, get) => ({
       state: s,
       selectedUnitId: null,
       selectedCityId: null,
+      cameraTarget: null,
       eventLog: s.log.slice(-6),
       message: s.status === 'finished' ? `胜利：${s.victoryType}` : (lastEvent ? formatEvent(s, lastEvent) : `第 ${s.turn} 回合`),
     });
   },
-  selectUnit: (id) => set({ selectedUnitId: id, selectedCityId: null }),
-  selectCity: (id) => set({ selectedCityId: id, selectedUnitId: null }),
+  selectUnit: (id) => {
+    const state = get().state;
+    const unit = id ? state.players.flatMap((p) => p.units).find((u) => u.id === id) : null;
+    set({ selectedUnitId: id, selectedCityId: null, cameraTarget: unit ? unit.tile : null });
+  },
+  selectCity: (id) => {
+    const state = get().state;
+    const city = id ? state.players.flatMap((p) => p.cities).find((c) => c.id === id) : null;
+    set({ selectedCityId: id, selectedUnitId: null, cameraTarget: city ? city.tile : null });
+  },
   setHoveredTile: (c) => set({ hoveredTile: c }),
   newGame: (seed = Math.floor(Math.random() * 100000)) => {
-    set({ state: createInitialState(seed, defaultConfig()), selectedUnitId: null, selectedCityId: null, eventLog: [], message: `新游戏 seed=${seed}` });
+    set({ state: createInitialState(seed, defaultConfig()), selectedUnitId: null, selectedCityId: null, cameraTarget: null, eventLog: [], message: `新游戏 seed=${seed}` });
   },
   save: async () => {
     try {

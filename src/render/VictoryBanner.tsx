@@ -2,6 +2,7 @@
 import { useGame } from './store';
 import { CIVILIZATIONS } from '../gamedata';
 import { AssetImage } from './AssetImage';
+import { theme } from './theme';
 
 const VICTORY_ICON: Record<string, string> = {
   science: '/assets/victory/science.png',
@@ -36,7 +37,7 @@ export function VictoryBanner() {
       style={{
         padding: '12px 16px',
         background: 'linear-gradient(135deg, #3a2a1e, #5a3a2e)',
-        color: '#fc8',
+        color: theme.colors.warning,
         textAlign: 'center',
         display: 'flex',
         alignItems: 'center',

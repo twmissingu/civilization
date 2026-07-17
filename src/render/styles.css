@@ -27,3 +27,16 @@ button:focus-visible,
   50% { opacity: 1; transform: scale(1.05); }
   100% { opacity: 1; transform: scale(1); }
 }
+
+/* 按钮 hover 样式 */
+button:hover {
+  filter: brightness(1.15);
+}
+button:active {
+  filter: brightness(0.9);
+  transform: scale(0.97);
+}
+button:disabled {
+  filter: grayscale(0.6);
+  cursor: not-allowed;
+}

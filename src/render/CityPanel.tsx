@@ -82,7 +82,7 @@ export function CityPanel() {
                   </span>
                   <span style={{ color: theme.colors.textDim }}>{pct}% · {formatTurns(eta)}</span>
                 </div>
-                <div style={{ height: 4, background: '#333', borderRadius: theme.borderRadius, marginTop: 1 }}>
+                <div style={{ height: 4, background: theme.colors.progressTrack, borderRadius: theme.borderRadius, marginTop: 1 }}>
                   <div
                     style={{
                       height: 4,

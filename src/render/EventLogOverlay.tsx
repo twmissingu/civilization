@@ -13,7 +13,7 @@ export function EventLogOverlay() {
     <div
       style={{
         position: 'absolute',
-        right: 290,
+        right: 310,
         top: 50,
         display: 'flex',
         flexDirection: 'column',
@@ -26,8 +26,8 @@ export function EventLogOverlay() {
           key={`${e.kind}-${e.turn}-${i}`}
           style={{
             padding: '3px 8px',
-            background: 'rgba(0,0,0,0.6)',
-            color: '#fc8',
+            background: theme.colors.bgOverlay + 'cc',
+            color: theme.colors.warning,
             borderRadius: theme.borderRadius,
             fontSize: 11,
             animation: 'fadein 0.3s',

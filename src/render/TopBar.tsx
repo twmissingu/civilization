@@ -84,7 +84,7 @@ export function TopBar({
             position: 'relative',
           }}
         >
-          结束回合 ▶
+          结束回合 (空格) ▶
           {todoCount > 0 && (
             <span style={{
               position: 'absolute',
