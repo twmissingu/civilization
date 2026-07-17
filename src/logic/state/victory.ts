@@ -1,4 +1,4 @@
-// 胜利判定（科技/统治/分数）
+// 胜利判定（科技/统治/分数/宗教）
 import type { GameState, PlayerState } from './types';
 
 export function checkVictory(state: GameState): { winnerId: string; type: string } | null {
@@ -8,6 +8,18 @@ export function checkVictory(state: GameState): { winnerId: string; type: string
       if (c.spaceProject && c.spaceProject.stage >= 3 && c.spaceProject.progress >= 1500) {
         return { winnerId: p.id, type: 'science' };
       }
+    }
+  }
+  // 宗教胜利：某玩家宗教是其他所有存活玩家城市的主流宗教
+  for (const p of state.players) {
+    if (!p.religionId) continue;
+    const others = state.players.filter((o) => o.id !== p.id && o.cities.length > 0);
+    if (others.length === 0) continue;
+    const allConverted = others.every((o) =>
+      o.cities.every((c) => c.dominantReligion === p.religionId)
+    );
+    if (allConverted) {
+      return { winnerId: p.id, type: 'religion' };
     }
   }
   // 统治胜利：占领全部其他文明的原始首都
@@ -32,6 +44,16 @@ export function checkVictory(state: GameState): { winnerId: string; type: string
       }
     }
     if (best) return { winnerId: best.id, type: 'score' };
+  }
+  // 文化胜利：某玩家旅游产出超过其他所有玩家累计文化产出的 50%
+  for (const p of state.players) {
+    if (p.totalTourism <= 0) continue;
+    const others = state.players.filter((o) => o.id !== p.id);
+    if (others.length === 0) continue;
+    const allExceeded = others.every((o) => p.totalTourism > o.totalCultureGenerated * 0.5);
+    if (allExceeded) {
+      return { winnerId: p.id, type: 'culture' };
+    }
   }
   return null;
 }

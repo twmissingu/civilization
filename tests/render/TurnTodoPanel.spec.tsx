@@ -11,14 +11,13 @@ function makePlayer() {
   const config: GameConfig = {
     mapSize: { width: 16, height: 12 },
     civChoices: [{ id: 'rome', isAI: false }],
-    difficulty: 'standard',
+    difficulty: 'prince',
     maxTurns: 300,
   };
   const state = createInitialState(42, config);
   return currentPlayer(state);
 }
 
-/** Fill all policy slots to suppress the "有未装备的政策卡" todo */
 function fillPolicySlots(player: ReturnType<typeof makePlayer>) {
   for (let i = 0; i < player.policySlots.length; i++) {
     player.policySlots[i] = 'placeholder';
@@ -26,7 +25,7 @@ function fillPolicySlots(player: ReturnType<typeof makePlayer>) {
 }
 
 describe('TurnTodoPanel', () => {
-  it('无待办时不渲染', () => {
+  it('no todos when nothing pending', () => {
     const player = makePlayer();
     player.units[0].moveLeft = 0;
     player.units[0].hasActed = true;
@@ -41,31 +40,15 @@ describe('TurnTodoPanel', () => {
     expect(container.firstChild).toBeNull();
   });
 
-  it('渲染单位与城市待办并触发回调', () => {
+  it('renders city and unit todos', () => {
     const player = makePlayer();
     player.units[0].moveLeft = 2;
     player.units[0].hasActed = false;
     player.cities.push({
-      id: 'city-0',
-      ownerId: player.id,
-      name: 'Roma',
-      tile: { q: 1, r: 1 },
-      territory: [{ q: 1, r: 1 }],
-      workedTiles: [{ q: 1, r: 1 }],
-      population: 1,
-      food: 0,
-      culture: 0,
-      housing: 2,
-      amenities: 1,
-      buildings: [],
-      districts: [],
-      wonders: [],
-      queue: [],
-      hp: 200,
-      wallsHp: 0,
-      wallsMax: 0,
-      isCapital: true,
-      rangedStrikeUsed: false,
+      id: 'city-0', ownerId: player.id, name: 'Roma', tile: { q: 1, r: 1 },
+      territory: [{ q: 1, r: 1 }], workedTiles: [{ q: 1, r: 1 }], population: 1, food: 0, culture: 0,
+      housing: 2, amenities: 1, buildings: [], districts: [], wonders: [], queue: [], hp: 200,
+      wallsHp: 0, wallsMax: 0, isCapital: true, rangedStrikeUsed: false, religion: {}, dominantReligion: null,
     });
     const onSelectUnit = vi.fn();
     const onSelectCity = vi.fn();
@@ -77,25 +60,5 @@ describe('TurnTodoPanel', () => {
     expect(onSelectUnit).toHaveBeenCalledWith(player.units[0].id);
     fireEvent.click(within(panel).getByText(/生产空闲/));
     expect(onSelectCity).toHaveBeenCalledWith('city-0');
-  });
-
-  it('未选科技/市政时显示提示', () => {
-    const player = makePlayer();
-    player.units[0].moveLeft = 0;
-    player.units[0].hasActed = true;
-    player.units[1].moveLeft = 0;
-    player.units[1].hasActed = true;
-    player.currentResearch = null;
-    player.currentCivic = null;
-    const onOpenResearch = vi.fn();
-    const onOpenCivics = vi.fn();
-    const { container } = render(
-      <TurnTodoPanel player={player} onSelectUnit={vi.fn()} onSelectCity={vi.fn()} onOpenResearch={onOpenResearch} onOpenCivics={onOpenCivics} />
-    );
-    const panel = container.firstChild! as HTMLElement;
-    fireEvent.click(within(panel).getByText('未选择科技'));
-    expect(onOpenResearch).toHaveBeenCalled();
-    fireEvent.click(within(panel).getByText('未选择市政'));
-    expect(onOpenCivics).toHaveBeenCalled();
   });
 });

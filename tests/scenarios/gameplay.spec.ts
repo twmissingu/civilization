@@ -20,7 +20,7 @@ function makeConfig(): GameConfig {
       { id: 'rome', isAI: false },
       { id: 'greece', isAI: true },
     ],
-    difficulty: 'standard',
+    difficulty: 'prince',
     maxTurns: 300,
   };
 }

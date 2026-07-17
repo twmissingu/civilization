@@ -17,7 +17,7 @@ function defaultConfig(): GameConfig {
       { id: 'greece', isAI: true },
       { id: 'china', isAI: true },
     ],
-    difficulty: 'standard',
+    difficulty: 'prince',
     maxTurns: 300,
   };
 }

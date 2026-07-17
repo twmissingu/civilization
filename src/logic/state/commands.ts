@@ -14,6 +14,10 @@ import { foundCity, buyTilePrice, settleCity, productionCost } from './city';
 import { playerYield } from './yield';
 import { resolveTurn } from './turnResolution';
 import { findUnit, findCity, currentPlayer, unitAt } from './query';
+import { canSendEnvoy, sendEnvoy } from './citystate';
+import { canRecruitGreatPerson, recruitGreatPerson } from './greatpeople';
+import { canStartTradeRoute, startTradeRoute } from './traderoute';
+import { canFoundPantheon, foundPantheon, canFoundReligion, foundReligion, canPurchaseMissionary, purchaseMissionary, canPurchaseApostle, purchaseApostle, spreadReligion } from './religion';
 
 export interface RuleError {
   code: string;
@@ -37,7 +41,15 @@ export type GameCommand =
   | { kind: 'changeGovernment'; governmentType: GovernmentId }
   | { kind: 'declareWar'; targetCivId: string }
   | { kind: 'suePeace'; targetCivId: string }
-  | { kind: 'startSpaceProject'; cityId: string; stage: 1 | 2 | 3 };
+  | { kind: 'startSpaceProject'; cityId: string; stage: 1 | 2 | 3 }
+  | { kind: 'sendEnvoy'; cityStateId: string }
+  | { kind: 'recruitGreatPerson'; greatPersonId: string }
+  | { kind: 'startTradeRoute'; traderId: string; toCityId: string }
+  | { kind: 'foundPantheon'; pantheonId: string }
+  | { kind: 'foundReligion' }
+  | { kind: 'purchaseMissionary'; cityId: string }
+  | { kind: 'purchaseApostle'; cityId: string }
+  | { kind: 'spreadReligion'; unitId: string; targetCityId: string };
 
 // ---------- helpers（移至 query.ts，此处 re-export 保持兼容）----------
 export { findUnit, findCity, currentPlayer };
@@ -153,6 +165,36 @@ export function canExecute(state: GameState, cmd: GameCommand): RuleError | null
     case 'startSpaceProject': {
       const c = findCity(state, cmd.cityId);
       if (!c || c.ownerId !== player.id) return { code: 'OWNER', message: '非当前玩家城市' };
+      return null;
+    }
+    case 'sendEnvoy':
+      if (!canSendEnvoy(state, player, cmd.cityStateId)) return { code: 'CANT_SEND', message: '无法派遣使者' };
+      return null;
+    case 'recruitGreatPerson':
+      if (!canRecruitGreatPerson(state, player, cmd.greatPersonId)) return { code: 'CANT_RECRUIT', message: '无法招募该大人物' };
+      return null;
+    case 'startTradeRoute':
+      if (!canStartTradeRoute(state, player, cmd.traderId, cmd.toCityId)) return { code: 'CANT_TRADE', message: '无法建立贸易路线' };
+      return null;
+    case 'foundPantheon':
+      if (!canFoundPantheon(player, cmd.pantheonId)) return { code: 'CANT_FOUND', message: '无法选择万神殿' };
+      return null;
+    case 'foundReligion':
+      if (!canFoundReligion(state, player)) return { code: 'CANT_FOUND', message: '无法创立宗教' };
+      return null;
+    case 'purchaseMissionary':
+      if (!canPurchaseMissionary(state, player, cmd.cityId)) return { code: 'CANT_PURCHASE', message: '无法购买传教士' };
+      return null;
+    case 'purchaseApostle':
+      if (!canPurchaseApostle(state, player, cmd.cityId)) return { code: 'CANT_PURCHASE', message: '无法购买使徒' };
+      return null;
+    case 'spreadReligion': {
+      const u = findUnit(state, cmd.unitId);
+      if (!u || u.ownerId !== player.id) return { code: 'OWNER', message: '非当前玩家单位' };
+      if (u.type !== 'missionary' && u.type !== 'apostle') return { code: 'TYPE', message: '需传教士或使徒' };
+      const targetCity = findCity(state, cmd.targetCityId);
+      if (!targetCity) return { code: 'NO_CITY', message: '目标城市不存在' };
+      if (u.charges !== undefined && u.charges <= 0) return { code: 'NO_CHARGES', message: '无可用传教次数' };
       return null;
     }
     case 'endTurn':
@@ -281,6 +323,51 @@ export function applyCommand(state: GameState, cmd: GameCommand): { state: GameS
     case 'startSpaceProject': {
       const c = findCity(s, cmd.cityId);
       if (c && !c.spaceProject) c.queue.push({ kind: 'project', id: `space_${cmd.stage}`, progress: 0 });
+      break;
+    }
+    case 'sendEnvoy': {
+      sendEnvoy(s, player, cmd.cityStateId);
+      events.push({ kind: 'EnvoySent', turn: s.turn, payload: { playerId: player.id, cityStateId: cmd.cityStateId } });
+      break;
+    }
+    case 'recruitGreatPerson': {
+      recruitGreatPerson(s, player, cmd.greatPersonId);
+      events.push({ kind: 'GreatPersonRecruited', turn: s.turn, payload: { playerId: player.id, greatPersonId: cmd.greatPersonId } });
+      break;
+    }
+    case 'startTradeRoute': {
+      const route = startTradeRoute(s, player, cmd.traderId, cmd.toCityId);
+      if (route) {
+        events.push({ kind: 'TradeRouteStarted', turn: s.turn, payload: { routeId: route.id, traderId: cmd.traderId, fromCityId: route.fromCityId, toCityId: cmd.toCityId } });
+      }
+      break;
+    }
+    case 'foundPantheon': {
+      foundPantheon(s, player, cmd.pantheonId);
+      events.push({ kind: 'PantheonFounded', turn: s.turn, payload: { playerId: player.id, pantheonId: cmd.pantheonId } });
+      break;
+    }
+    case 'foundReligion': {
+      foundReligion(s, player);
+      events.push({ kind: 'ReligionFounded', turn: s.turn, payload: { playerId: player.id, religionId: player.religionId, religionName: player.religionName } });
+      break;
+    }
+    case 'purchaseMissionary': {
+      purchaseMissionary(s, player, cmd.cityId);
+      events.push({ kind: 'MissionaryPurchased', turn: s.turn, payload: { playerId: player.id, cityId: cmd.cityId } });
+      break;
+    }
+    case 'purchaseApostle': {
+      purchaseApostle(s, player, cmd.cityId);
+      events.push({ kind: 'ApostlePurchased', turn: s.turn, payload: { playerId: player.id, cityId: cmd.cityId } });
+      break;
+    }
+    case 'spreadReligion': {
+      spreadReligion(s, cmd.unitId, cmd.targetCityId);
+      const targetCity = findCity(s, cmd.targetCityId);
+      if (targetCity) {
+        events.push({ kind: 'ReligionSpread', turn: s.turn, payload: { unitId: cmd.unitId, cityId: cmd.targetCityId, dominantReligion: targetCity.dominantReligion } });
+      }
       break;
     }
     case 'endTurn': {

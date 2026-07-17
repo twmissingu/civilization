@@ -2,7 +2,7 @@
 
 export type DistrictType =
   | 'campus' | 'commercial' | 'holy' | 'industrial'
-  | 'encampment' | 'theater' | 'harbor';
+  | 'encampment' | 'theater' | 'harbor' | 'aerodrome';
 
 export interface DistrictDef {
   id: DistrictType;
@@ -18,6 +18,7 @@ export const DISTRICTS: Record<DistrictType, DistrictDef> = {
   encampment: { id: 'encampment', name: '军营', unlockTech: 'bronze_working' },
   theater: { id: 'theater', name: '剧院', unlockTech: 'drama_poetry_civic' },
   harbor: { id: 'harbor', name: '港口', unlockTech: 'sailing' },
+  aerodrome: { id: 'aerodrome', name: '机场', unlockTech: 'advanced_flight' },
 };
 
 // 相邻加成来源类型

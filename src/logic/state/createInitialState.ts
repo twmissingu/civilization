@@ -3,7 +3,7 @@ import type { GameState, PlayerState, UnitState, GameConfig } from './types';
 import type { HexCoord } from '../../types';
 import { createRng } from '../rng';
 import { generateMap, getTile } from './mapgen';
-import { CIVILIZATIONS } from '../../gamedata';
+import { CIVILIZATIONS, CITY_STATES } from '../../gamedata';
 import { allTiles, hexDistance, type MapBounds } from '../hex';
 
 function findSpawns(bounds: MapBounds, count: number, seed: number): HexCoord[] {
@@ -87,6 +87,17 @@ export function createInitialState(seed: number, config: GameConfig): GameState 
       settlersBuilt: 0,
       districtsBuilt: 0,
       era: 'ancient',
+      storedEnvoys: 0,
+      greatPersonPoints: {},
+      recruitedGreatPeople: [],
+      tradeRoutes: [],
+      tradeRouteCapacity: 0,
+      pantheon: null,
+      religionId: null,
+      holyCityId: null,
+      religionName: null,
+      totalTourism: 0,
+      totalCultureGenerated: 0,
     };
   });
 
@@ -113,5 +124,11 @@ export function createInitialState(seed: number, config: GameConfig): GameState 
     unitIdCounter: config.civChoices.length * 2,
     cityIdCounter: 0,
     log: [],
+    cityStates: Object.keys(CITY_STATES).map((id) => ({
+      id,
+      envoys: {},
+      suzerainId: null,
+      isAlive: true,
+    })),
   };
 }

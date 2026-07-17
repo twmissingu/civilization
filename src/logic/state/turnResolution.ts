@@ -6,10 +6,16 @@ import { advanceResearch, computeEra } from './tech';
 import { advanceCivic } from './civic';
 import { playerYield } from './yield';
 import { checkVictory } from './victory';
+import { processTradeRoutes } from './traderoute';
+import { computePassiveReligiousPressure } from './religion';
 import { techCost } from '../../gamedata';
 
 export function resolveTurn(state: GameState): void {
   state.turn += 1;
+  // 处理贸易路线（在所有玩家产出结算前，先处理路线完成和金币产出）
+  processTradeRoutes(state);
+  // 处理被动宗教压力
+  computePassiveReligiousPressure(state);
   for (const player of state.players) {
     for (const city of player.cities) settleCity(state, city);
     const y = playerYield(state, player);
@@ -33,6 +39,8 @@ export function resolveTurn(state: GameState): void {
     if (player.currentCivic) advanceCivic(player, culture);
     player.gold += y.gold;
     player.faith += y.faith;
+    player.totalTourism += Math.floor(y.culture * 0.5);
+    player.totalCultureGenerated += y.culture;
     const maintenance = player.units.reduce((a, u) => a + (UNITS[u.type]?.maintenance ?? 0), 0);
     player.gold -= maintenance;
     for (const u of player.units) {

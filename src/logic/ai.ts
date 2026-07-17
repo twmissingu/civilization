@@ -1,7 +1,7 @@
 // AI 决策（两层 utility AI 简化版）+ 驱动
 // 确定性：随机经 createRng(hash(seed, turn, playerIdx))，禁 Math.random
 import type { HexCoord } from '../types';
-import type { GameState, PlayerState } from './state/types';
+import type { GameState, PlayerState, Difficulty } from './state/types';
 import type { GameCommand } from './state/commands';
 import { applyCommand } from './state/commands';
 import { createRng, hash } from './rng';
@@ -11,6 +11,9 @@ import { canResearchCivic } from './state/civic';
 import { canBuildImprovement } from './state/builder';
 import { getTile } from './state/mapgen';
 import { hexDistance, hexNeighbors, inBounds } from './hex';
+import { canStartTradeRoute } from './state/traderoute';
+import { canFoundReligion, canPurchaseMissionary } from './state/religion';
+import { PANTHEONS } from '../gamedata';
 
 function playerIdx(id: string): number {
   const m = id.match(/(\d+)$/);
@@ -46,14 +49,23 @@ export function aiDecide(state: GameState, player: PlayerState): GameCommand[] {
   const commands: GameCommand[] = [];
   const rng = createRng(hash(state.seed, state.turn, playerIdx(player.id)));
   const difficulty = state.config.difficulty;
-  const skipChance = difficulty === 'easy' ? 0.35 : difficulty === 'hard' ? 0 : 0.1;
+  const skipChanceMap: Record<Difficulty, number> = {
+    settler: 0.5,
+    chieftain: 0.35,
+    warlord: 0.2,
+    prince: 0.1,
+    king: 0.05,
+    emperor: 0,
+  };
+  const skipChance = skipChanceMap[difficulty];
+  const isHard = difficulty === 'king' || difficulty === 'emperor';
 
-  // 战略层：研究（easy 随机，standard/hard 选最便宜）
+  // 战略层：研究（settler/chieftain 随机，其余选最便宜）
   if (!player.currentResearch) {
     const available = Object.values(TECHS).filter((t) => canResearch(player, t.id));
     if (available.length > 0) {
       const pick =
-        difficulty === 'easy'
+        difficulty === 'settler' || difficulty === 'chieftain'
           ? available[Math.floor(rng.next() * available.length)]
           : available.sort((a, b) => a.cost - b.cost)[0];
       commands.push({ kind: 'research', techId: pick.id });
@@ -68,18 +80,38 @@ export function aiDecide(state: GameState, player: PlayerState): GameCommand[] {
     }
   }
 
+  // 宗教层：万神殿/创立宗教/购买传教士
+  if (player.faith >= 25 && !player.pantheon) {
+    const pantheonIds = Object.keys(PANTHEONS);
+    if (pantheonIds.length > 0) {
+      commands.push({ kind: 'foundPantheon', pantheonId: pantheonIds[Math.floor(rng.next() * pantheonIds.length)] });
+    }
+  }
+  if (canFoundReligion(state, player)) {
+    commands.push({ kind: 'foundReligion' });
+  }
+  // 购买传教士
+  if (player.religionId) {
+    const holyCity = player.cities.find((c) => c.id === player.holyCityId);
+    if (holyCity && canPurchaseMissionary(state, player, holyCity.id)) {
+      commands.push({ kind: 'purchaseMissionary', cityId: holyCity.id });
+    }
+  }
+
   // 战术层：城市生产（hard 优先补军事）
   const militaryCount = player.units.filter((u) => ['warrior', 'archer', 'swordsman', 'cavalry', 'knight'].includes(u.type)).length;
   for (const city of player.cities) {
     if (city.queue.length > 0) continue;
     const builderCount = player.units.filter((u) => u.type === 'builder').length;
     let unitType = 'warrior';
-    if (difficulty === 'hard' && militaryCount < player.cities.length) {
+    if (isHard && militaryCount < player.cities.length) {
       unitType = player.researchedTechs.includes('archery') ? 'archer' : 'warrior';
     } else if (builderCount < player.cities.length) {
       unitType = 'builder';
-    } else if (player.cities.length < (difficulty === 'hard' ? 6 : 4) && player.researchedTechs.length > 1) {
+    } else if (player.cities.length < (isHard ? 6 : 3) && player.researchedTechs.length > 1) {
       unitType = 'settler';
+    } else if (player.researchedTechs.includes('currency') && player.tradeRouteCapacity > 0 && (player.tradeRoutes?.length ?? 0) < player.tradeRouteCapacity) {
+      unitType = 'trader';
     } else if (player.researchedTechs.includes('archery')) {
       unitType = 'archer';
     }
@@ -107,6 +139,53 @@ export function aiDecide(state: GameState, player: PlayerState): GameCommand[] {
       } else {
         const dest = randomLandNeighbor(state, unit.tile, rng);
         if (dest) commands.push({ kind: 'moveUnit', unitId: unit.id, to: dest });
+      }
+    } else if (unit.type === 'missionary' || unit.type === 'apostle') {
+      // 传教士/使徒：找敌方城市传教
+      if (unit.charges !== undefined && unit.charges > 0 && player.religionId) {
+        // 找非己方且非该宗教的城市
+        let target: { id: string } | null = null;
+        for (const p of state.players) {
+          if (p.id === player.id) continue;
+          for (const c of p.cities) {
+            if (c.dominantReligion !== player.religionId) {
+              target = c;
+              break;
+            }
+          }
+          if (target) break;
+        }
+        if (target) {
+          commands.push({ kind: 'spreadReligion', unitId: unit.id, targetCityId: target.id });
+        }
+      }
+    } else if (unit.type === 'trader') {
+      // 商人：寻找贸易路线目标
+      if (!unit.tradeRouteId) {
+        // 找可贸易的目标城市
+        let targetCity: { id: string } | null = null;
+        for (const p of state.players) {
+          if (p.id === player.id) continue;
+          for (const c of p.cities) {
+            if (canStartTradeRoute(state, player, unit.id, c.id)) {
+              targetCity = c;
+              break;
+            }
+          }
+          if (targetCity) break;
+        }
+        // 也可以贸易到自己的城市
+        if (!targetCity) {
+          for (const c of player.cities) {
+            if (canStartTradeRoute(state, player, unit.id, c.id)) {
+              targetCity = c;
+              break;
+            }
+          }
+        }
+        if (targetCity) {
+          commands.push({ kind: 'startTradeRoute', traderId: unit.id, toCityId: targetCity.id });
+        }
       }
     } else {
       // 军事：攻击邻敌，否则探索

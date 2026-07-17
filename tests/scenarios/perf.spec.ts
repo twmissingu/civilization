@@ -8,7 +8,7 @@ function makeState(seed: number, w: number, h: number, civIds: string[]): GameSt
   const config: GameConfig = {
     mapSize: { width: w, height: h },
     civChoices: civIds.map((id, i) => ({ id, isAI: i !== 0 })),
-    difficulty: 'standard',
+    difficulty: 'prince',
     maxTurns: 300,
   };
   return createInitialState(seed, config);

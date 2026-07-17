@@ -14,7 +14,7 @@ function makeState(seed = 7): GameState {
   const config: GameConfig = {
     mapSize: { width: 16, height: 12 },
     civChoices: [{ id: 'rome', isAI: false }, { id: 'greece', isAI: true }],
-    difficulty: 'standard',
+    difficulty: 'prince',
     maxTurns: 300,
   };
   return createInitialState(seed, config);
@@ -191,7 +191,7 @@ describe('攻城', () => {
       id: 'city-test', ownerId: 'player-1', name: 'Athens', tile: spawn,
       territory: [spawn], workedTiles: [spawn], population: 1, food: 0, culture: 0,
       housing: 2, amenities: 1, buildings: ['monument'], districts: [], wonders: [],
-      queue: [], hp: 200, wallsHp: 0, wallsMax: 0, isCapital: true, rangedStrikeUsed: false,
+      queue: [], hp: 200, wallsHp: 0, wallsMax: 0, isCapital: true, rangedStrikeUsed: false, religion: {}, dominantReligion: null,
     };
     p1.cities.push(city);
     p1.capitalCityId = 'city-test';

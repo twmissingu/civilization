@@ -9,7 +9,7 @@ function makeState(): GameState {
   const config: GameConfig = {
     mapSize: { width: 16, height: 12 },
     civChoices: [{ id: 'rome', isAI: false }, { id: 'greece', isAI: true }],
-    difficulty: 'standard',
+    difficulty: 'prince',
     maxTurns: 300,
   };
   return createInitialState(42, config);

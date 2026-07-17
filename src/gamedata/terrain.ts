@@ -10,8 +10,8 @@ export interface TerrainDef {
 
 export const TERRAINS: Record<string, TerrainDef> = {
   grassland: { id: 'grassland', moveCost: 1, impassable: false, yield: { food: 2, production: 0, gold: 0, science: 0, culture: 0, faith: 0 } },
-  plains: { id: 'plains', moveCost: 1, impassable: false, yield: { food: 1, production: 1, gold: 0, science: 0, culture: 0, faith: 0 } },
-  hills: { id: 'hills', moveCost: 2, impassable: false, yield: { food: 0, production: 2, gold: 0, science: 0, culture: 0, faith: 0 } },
+  plains: { id: 'plains', moveCost: 1, impassable: false, yield: { food: 2, production: 1, gold: 0, science: 0, culture: 0, faith: 0 } },
+  hills: { id: 'hills', moveCost: 2, impassable: false, yield: { food: 0, production: 3, gold: 0, science: 0, culture: 0, faith: 0 } },
   desert: { id: 'desert', moveCost: 1, impassable: false, yield: { food: 0, production: 0, gold: 0, science: 0, culture: 0, faith: 0 } },
   tundra: { id: 'tundra', moveCost: 2, impassable: false, yield: { food: 0, production: 0, gold: 0, science: 0, culture: 0, faith: 0 } },
   snow: { id: 'snow', moveCost: 2, impassable: false, yield: { food: 0, production: 0, gold: 0, science: 0, culture: 0, faith: 0 } },

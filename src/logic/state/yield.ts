@@ -5,6 +5,8 @@ import { TERRAINS, FEATURES, RESOURCES, IMPROVEMENTS, BUILDINGS, GOVERNMENTS } f
 import { addYield, ZERO_YIELD, type Yield } from '../../gamedata/types';
 import { getTile } from './mapgen';
 import { districtAdjacencyBonus } from './district';
+import { cityStateYieldBonus } from './citystate';
+import { tradeRouteYield } from './traderoute';
 
 export function tileYield(tile: Tile, worked: boolean): Yield {
   if (!worked) return ZERO_YIELD;
@@ -48,6 +50,10 @@ export function cityYield(state: GameState, city: CityState): Yield {
     if (owner.government === 'classical_republic') y = addYield(y, { production: 1, culture: 1 });
     if (owner.government === 'monarchy' || owner.government === 'merchant_republic') y = addYield(y, { gold: 2 });
     if (owner.government === 'theocracy') y = addYield(y, { faith: Math.floor(y.faith * 0.5) });
+    // AI 难度加成：emperor 首都 +1 产能
+    if (owner.isAI && city.isCapital && state.config.difficulty === 'emperor') {
+      y = addYield(y, { production: 1 });
+    }
   }
   return y;
 }
@@ -55,6 +61,20 @@ export function cityYield(state: GameState, city: CityState): Yield {
 export function playerYield(state: GameState, player: PlayerState): Yield {
   let y: Yield = ZERO_YIELD;
   for (const c of player.cities) y = addYield(y, cityYield(state, c));
+  // 城邦加成
+  const csBonus = cityStateYieldBonus(state, player);
+  y = addYield(y, csBonus);
+  // 贸易路线产出
+  const trYield = tradeRouteYield(player);
+  y = addYield(y, trYield);
+  // AI 难度加成：king/emperor 金币和科技
+  if (player.isAI) {
+    if (state.config.difficulty === 'king') {
+      y = addYield(y, { gold: 2, science: 1 });
+    } else if (state.config.difficulty === 'emperor') {
+      y = addYield(y, { gold: 4, science: 2 });
+    }
+  }
   return y;
 }
 

@@ -17,7 +17,7 @@ export function cityHousing(city: CityState): number {
 }
 
 export function foodThreshold(pop: number): number {
-  return 15 + 8 * (pop - 1);
+  return 15 + 10 * (pop - 1);
 }
 
 /** 找扩张目标格：城中心 3 格内未归属、按距离+优先级 */
@@ -65,6 +65,8 @@ export function foundCity(state: GameState, settler: UnitState, name: string): s
     wallsMax: 0,
     isCapital,
     rangedStrikeUsed: false,
+    religion: {},
+    dominantReligion: null,
   };
   if (isCapital) player.capitalCityId = cityId;
   player.cities.push(city);

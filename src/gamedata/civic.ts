@@ -22,11 +22,45 @@ export const CIVICS: Record<string, CivicDef> = {
   drama_poetry: { id: 'drama_poetry', name: '戏剧与诗歌', era: 'classical', cost: 80, prereqCivics: ['code_of_laws'], inspiration: { predicate: 'build_a_theater', boost: 0.4 }, unlocks: ['theater', 'drama', 'colosseum'] },
   humanism: { id: 'humanism', name: '人文主义', era: 'renaissance', cost: 140, prereqCivics: ['drama_poetry'], inspiration: { predicate: 'build_a_theater', boost: 0.4 }, unlocks: ['museum'] },
   enlightenment: { id: 'enlightenment', name: '启蒙运动', era: 'renaissance', cost: 160, prereqCivics: ['humanism'], inspiration: { predicate: 'build_a_university', boost: 0.4 }, unlocks: ['democracy', 'enlightenment_card'] },
+  // Medieval era
+  civil_service: { id: 'civil_service', name: '文官制度', era: 'medieval', cost: 80, prereqCivics: ['state_workforce'], inspiration: { predicate: 'build_a_district', boost: 0.4 }, unlocks: [] },
+  divine_right: { id: 'divine_right', name: '君权神授', era: 'medieval', cost: 90, prereqCivics: ['theology'], inspiration: { predicate: 'build_a_holy_site', boost: 0.4 }, unlocks: [] },
+  diplomacy: { id: 'diplomacy', name: '外交', era: 'medieval', cost: 100, prereqCivics: ['political_philosophy'], inspiration: { predicate: 'meet_3_civs', boost: 0.4 }, unlocks: [] },
+  medieval_church: { id: 'medieval_church', name: '中世纪教会', era: 'medieval', cost: 110, prereqCivics: ['theology'], inspiration: { predicate: 'build_a_holy_site', boost: 0.4 }, unlocks: [] },
+  navigation: { id: 'navigation', name: '航海', era: 'medieval', cost: 120, prereqCivics: ['feudalism'], inspiration: { predicate: 'build_a_harbor', boost: 0.4 }, unlocks: [] },
+  // Renaissance era
+  reformed_church: { id: 'reformed_church', name: '宗教改革', era: 'renaissance', cost: 150, prereqCivics: ['divine_right'], inspiration: { predicate: 'build_a_holy_site', boost: 0.4 }, unlocks: [] },
+  exploration: { id: 'exploration', name: '探索', era: 'renaissance', cost: 160, prereqCivics: ['navigation'], inspiration: { predicate: 'meet_3_civs', boost: 0.4 }, unlocks: [] },
+  mercantilism: { id: 'mercantilism', name: '重商主义', era: 'renaissance', cost: 170, prereqCivics: ['guilds'], inspiration: { predicate: 'build_a_commercial', boost: 0.4 }, unlocks: [] },
+  diplomacy_ren: { id: 'diplomacy_ren', name: '外交学', era: 'renaissance', cost: 165, prereqCivics: ['diplomacy'], inspiration: { predicate: 'meet_3_civs', boost: 0.4 }, unlocks: [] },
+  cultural_heritage: { id: 'cultural_heritage', name: '文化遗产', era: 'renaissance', cost: 180, prereqCivics: ['humanism'], inspiration: { predicate: 'build_a_theater', boost: 0.4 }, unlocks: [] },
+  // Industrial era
+  nationalism: { id: 'nationalism', name: '民族主义', era: 'industrial', cost: 220, prereqCivics: ['civil_service'], inspiration: { predicate: 'win_a_battle', boost: 0.4 }, unlocks: [] },
+  capitalism: { id: 'capitalism', name: '资本主义', era: 'industrial', cost: 240, prereqCivics: ['mercantilism'], inspiration: { predicate: 'build_a_commercial', boost: 0.4 }, unlocks: [] },
+  socialism: { id: 'socialism', name: '社会主义', era: 'industrial', cost: 230, prereqCivics: ['political_philosophy'], inspiration: { predicate: 'build_a_industrial', boost: 0.4 }, unlocks: [] },
+  natural_history_ind: { id: 'natural_history_ind', name: '自然史', era: 'industrial', cost: 250, prereqCivics: ['cultural_heritage'], inspiration: { predicate: 'build_a_campus', boost: 0.4 }, unlocks: [] },
+  colonialism: { id: 'colonialism', name: '殖民主义', era: 'industrial', cost: 260, prereqCivics: ['exploration'], inspiration: { predicate: 'settle_a_city', boost: 0.4 }, unlocks: [] },
+  // Modern era
+  totalitarianism: { id: 'totalitarianism', name: '极权主义', era: 'modern', cost: 300, prereqCivics: ['nationalism'], inspiration: { predicate: 'build_a_military', boost: 0.4 }, unlocks: ['fascism'] },
+  democracy_modern: { id: 'democracy_modern', name: '现代民主', era: 'modern', cost: 320, prereqCivics: ['capitalism'], inspiration: { predicate: 'build_a_district', boost: 0.4 }, unlocks: [] },
+  communism: { id: 'communism', name: '共产主义', era: 'modern', cost: 310, prereqCivics: ['socialism'], inspiration: { predicate: 'build_a_industrial', boost: 0.4 }, unlocks: ['communism_gov'] },
+  feminism: { id: 'feminism', name: '女权主义', era: 'modern', cost: 340, prereqCivics: ['humanism'], inspiration: { predicate: 'build_a_theater', boost: 0.4 }, unlocks: [] },
+  environmentalism: { id: 'environmentalism', name: '环保主义', era: 'modern', cost: 330, prereqCivics: ['natural_history_ind'], inspiration: { predicate: 'build_a_campus', boost: 0.4 }, unlocks: [] },
+  // Atomic era
+  nuclear_program: { id: 'nuclear_program', name: '核计划', era: 'atomic', cost: 400, prereqCivics: ['totalitarianism'], inspiration: { predicate: 'build_a_campus', boost: 0.4 }, unlocks: [] },
+  global_governance: { id: 'global_governance', name: '全球治理', era: 'atomic', cost: 420, prereqCivics: ['democracy_modern'], inspiration: { predicate: 'meet_3_civs', boost: 0.4 }, unlocks: [] },
+  information_warfare: { id: 'information_warfare', name: '信息战', era: 'atomic', cost: 410, prereqCivics: ['communism'], inspiration: { predicate: 'win_a_battle', boost: 0.4 }, unlocks: [] },
+  social_media: { id: 'social_media', name: '社交媒体', era: 'atomic', cost: 430, prereqCivics: ['feminism'], inspiration: { predicate: 'build_a_district', boost: 0.4 }, unlocks: [] },
+  // Information era
+  digital_democracy: { id: 'digital_democracy', name: '数字民主', era: 'information', cost: 500, prereqCivics: ['global_governance'], inspiration: { predicate: 'build_a_district', boost: 0.4 }, unlocks: ['digital_democracy_gov'] },
+  future_civic: { id: 'future_civic', name: '未来市政', era: 'information', cost: 520, prereqCivics: ['social_media'], inspiration: { predicate: 'build_a_campus', boost: 0.4 }, unlocks: [] },
+  smart_cities: { id: 'smart_cities', name: '智慧城市', era: 'information', cost: 510, prereqCivics: ['environmentalism'], inspiration: { predicate: 'build_a_industrial', boost: 0.4 }, unlocks: [] },
 };
 
 export type GovernmentId =
   | 'chiefdom' | 'oligarchy' | 'autocracy' | 'classical_republic'
-  | 'monarchy' | 'theocracy' | 'merchant_republic' | 'democracy';
+  | 'monarchy' | 'theocracy' | 'merchant_republic' | 'democracy'
+  | 'fascism' | 'communism_gov' | 'digital_democracy_gov';
 
 export interface GovernmentDef {
   id: GovernmentId;
@@ -47,6 +81,9 @@ export const GOVERNMENTS: Record<GovernmentId, GovernmentDef> = {
   theocracy: { id: 'theocracy', name: '神权', militarySlots: 1, economicSlots: 1, wildcardSlots: 1, bonus: '圣地信仰产出 +50%（被动，不消费信仰）', unlockCivic: 'theology' },
   merchant_republic: { id: 'merchant_republic', name: '商业共和', militarySlots: 1, economicSlots: 2, wildcardSlots: 1, bonus: '每城 +2 金币', unlockCivic: 'guilds' },
   democracy: { id: 'democracy', name: '民主', militarySlots: 1, economicSlots: 3, wildcardSlots: 1, bonus: '每城 +1 住房', unlockCivic: 'enlightenment' },
+  fascism: { id: 'fascism', name: '法西斯主义', militarySlots: 3, economicSlots: 1, wildcardSlots: 1, bonus: '军事单位 +5 战斗力', unlockCivic: 'totalitarianism' },
+  communism_gov: { id: 'communism_gov', name: '共产主义', militarySlots: 2, economicSlots: 2, wildcardSlots: 1, bonus: '每城 +1 产能', unlockCivic: 'communism' },
+  digital_democracy_gov: { id: 'digital_democracy_gov', name: '数字民主', militarySlots: 1, economicSlots: 3, wildcardSlots: 2, bonus: '每城 +1 科技', unlockCivic: 'digital_democracy' },
 };
 
 export type PolicyCardType = 'military' | 'economic' | 'wildcard' | 'diplomatic';

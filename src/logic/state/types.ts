@@ -3,9 +3,9 @@
 
 import type { HexCoord } from '../../types';
 import type { GameMap } from '../state/mapgen';
-import type { DistrictType, GovernmentId } from '../../gamedata';
+import type { DistrictType, GovernmentId, Yield } from '../../gamedata';
 
-export type Difficulty = 'easy' | 'standard' | 'hard';
+export type Difficulty = 'settler' | 'chieftain' | 'warlord' | 'prince' | 'king' | 'emperor';
 export type Visibility = 'unexplored' | 'explored' | 'visible';
 export type DiplomacyState = 'peace' | 'war';
 
@@ -20,6 +20,7 @@ export interface UnitState {
   level: number;
   promotions: string[];
   charges?: number; // 建造者充能
+  tradeRouteId?: string; // 关联的贸易路线 id
   hasActed: boolean; // 本回合是否已攻击/行动
 }
 
@@ -57,6 +58,20 @@ export interface CityState {
   isCapital: boolean;
   rangedStrikeUsed: boolean;
   spaceProject?: { stage: 1 | 2 | 3; progress: number };
+  religion: Record<string, number>; // religionId -> 压力值
+  dominantReligion: string | null; // 当前主流宗教
+}
+
+export interface TradeRouteInstance {
+  id: string;
+  ownerId: string;
+  traderId: string;
+  fromCityId: string;
+  toCityId: string;
+  toPlayerId: string; // 目标城市所属玩家
+  turnsCompleted: number;
+  turnsTotal: number;
+  yieldPerTurn: Yield;
 }
 
 export interface PlayerState {
@@ -78,6 +93,17 @@ export interface PlayerState {
   settlersBuilt: number;
   districtsBuilt: number;
   era: string;
+  storedEnvoys: number; // 可用使者数
+  greatPersonPoints: Record<string, number>; // greatPersonType -> accumulated points
+  recruitedGreatPeople: string[]; // 已招募的大人物 id
+  tradeRoutes: TradeRouteInstance[]; // 活跃贸易路线
+  tradeRouteCapacity: number; // 贸易路线容量
+  pantheon: string | null; // 已选万神殿 id
+  religionId: string | null; // 创立宗教 id
+  holyCityId: string | null; // 圣城城市 id
+  religionName: string | null; // 宗教名称
+	totalTourism: number; // 累计旅游产出
+  totalCultureGenerated: number; // 累计文化产出
 }
 
 export interface GameEvent {
@@ -91,6 +117,13 @@ export interface GameConfig {
   civChoices: { id: string; isAI: boolean }[]; // 玩家+AI 文明
   difficulty: Difficulty;
   maxTurns: number;
+}
+
+export interface CityStateInstance {
+  id: string; // 对应 citystate def id
+  envoys: Record<string, number>; // playerId -> envoy count
+  suzerainId: string | null; // 当前宗主国 playerId
+  isAlive: boolean;
 }
 
 export interface GameState {
@@ -108,4 +141,5 @@ export interface GameState {
   unitIdCounter: number;
   cityIdCounter: number;
   log: GameEvent[];
+  cityStates: CityStateInstance[]; // 城邦实例
 }

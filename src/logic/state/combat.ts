@@ -4,6 +4,7 @@ import { UNITS } from '../../gamedata';
 import { createRng, hash } from '../rng';
 import { hexEquals } from '../hex';
 import { findUnit, unitAt } from './query';
+import { getTile } from './mapgen';
 
 function unitCS(unit: UnitState): number {
   const def = UNITS[unit.type];
@@ -36,16 +37,19 @@ export function resolveAttack(state: GameState, attacker: UnitState, defender: U
   const dDef = UNITS[defender.type];
   const aCS = unitCS(attacker);
   const dCS = unitCS(defender);
+  const dTile = getTile(state.map, defender.tile);
+  const hillsBonus = dTile && dTile.terrain === 'hills' ? 3 : 0;
+  const dCSAdjusted = dCS + hillsBonus;
   const rng = createRng(hash(state.seed, state.turn, attacker.id, defender.id));
 
-  const dmgToDefender = damage(aCS, dCS, rng);
+  const dmgToDefender = damage(aCS, dCSAdjusted, rng);
   defender.hp -= dmgToDefender;
 
   let dmgToAttacker = 0;
   const isRanged = aDef && (aDef.domain === 'ranged' || aDef.domain === 'siege_ranged' || aDef.domain === 'naval_ranged');
   if (!isRanged) {
     // 近战反击
-    const counter = damage(dCS, aCS, rng) * 0.5;
+    const counter = damage(dCSAdjusted, aCS, rng) * 0.5;
     dmgToAttacker = Math.floor(counter);
     attacker.hp -= dmgToAttacker;
   }

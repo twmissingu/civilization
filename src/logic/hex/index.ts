@@ -84,3 +84,37 @@ export function allTiles(bounds: MapBounds): HexCoord[] {
 export function tileIndex(coord: HexCoord, bounds: MapBounds): number {
   return coord.r * bounds.width + coord.q;
 }
+
+/**
+ * 根据相机偏移与画布尺寸，计算当前视口覆盖的轴向坐标范围（含 margin）。
+ * 坐标约定与 hexToPixel/pixelToHex 一致：sprite 中心 = hexToPixel(coord, size) + {x: size, y: size} + cam。
+ */
+export function viewportHexBounds(
+  cam: { x: number; y: number },
+  canvasW: number,
+  canvasH: number,
+  bounds: MapBounds,
+  size = HEX_SIZE,
+  margin = 2
+): { minQ: number; maxQ: number; minR: number; maxR: number } {
+  // 屏幕坐标 = hexToPixel(coord, size) + {x: size, y: size} + cam
+  // 因此 hexToPixel(coord, size) = 屏幕坐标 - cam - {x: size, y: size}
+  const samples = [
+    pixelToHex(-cam.x - size, -cam.y - size, size),
+    pixelToHex(-cam.x + canvasW - size, -cam.y - size, size),
+    pixelToHex(-cam.x - size, -cam.y + canvasH - size, size),
+    pixelToHex(-cam.x + canvasW - size, -cam.y + canvasH - size, size),
+  ];
+
+  let minQ = Math.min(...samples.map((c) => c.q));
+  let maxQ = Math.max(...samples.map((c) => c.q));
+  let minR = Math.min(...samples.map((c) => c.r));
+  let maxR = Math.max(...samples.map((c) => c.r));
+
+  minQ = Math.max(0, minQ - margin);
+  minR = Math.max(0, minR - margin);
+  maxQ = Math.min(bounds.width - 1, maxQ + margin);
+  maxR = Math.min(bounds.height - 1, maxR + margin);
+
+  return { minQ, maxQ, minR, maxR };
+}

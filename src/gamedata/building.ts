@@ -36,4 +36,6 @@ export const BUILDINGS: Record<string, BuildingDef> = {
   aqueduct: { id: 'aqueduct', name: '水渠', district: 'city_center', unlockTech: 'engineering', cost: 120, yield: { food: 0, production: 0, gold: 0, science: 0, culture: 0, faith: 0 }, housing: 2, amenities: 0 },
   entertainment: { id: 'entertainment', name: '娱乐区', district: 'city_center', unlockCivic: 'drama_poetry', cost: 80, yield: { food: 0, production: 0, gold: 0, science: 0, culture: 0, faith: 0 }, housing: 0, amenities: 2 },
   zoo: { id: 'zoo', name: '动物园', district: 'city_center', unlockTech: 'natural_history', cost: 290, yield: { food: 0, production: 0, gold: 0, science: 0, culture: 1, faith: 0 }, housing: 0, amenities: 2 },
+  hangar: { id: 'hangar', name: '机库', district: 'aerodrome', unlockTech: 'advanced_flight', cost: 300, yield: { food: 0, production: 0, gold: 0, science: 0, culture: 0, faith: 0 }, housing: 0, amenities: 0, effects: { aircraft: 3 } },
+  airport_terminal: { id: 'airport_terminal', name: '航站楼', district: 'aerodrome', unlockTech: 'combined_arms', cost: 400, yield: { food: 0, production: 0, gold: 2, science: 0, culture: 0, faith: 0 }, housing: 0, amenities: 0, effects: { aircraft: 5 } },
 };

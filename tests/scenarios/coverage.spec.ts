@@ -6,18 +6,19 @@ import { districtAdjacencyBonus } from '../../src/logic/state/district';
 import { resolveAttack, resolveAttackCity, previewCombat } from '../../src/logic/state/combat';
 import { canChangeGovernment, changeGovernment, canSwitchPolicy, canResearchCivic, advanceCivic } from '../../src/logic/state/civic';
 import { resolveTurn } from '../../src/logic/state/turnResolution';
-import { tileYield, cityYield } from '../../src/logic/state/yield';
+import { tileYield, cityYield, playerYield } from '../../src/logic/state/yield';
 import { moveUnit, isBlocked } from '../../src/logic/state/unitMove';
 import { advanceResearch, canResearch, computeEra } from '../../src/logic/state/tech';
 import { getTile } from '../../src/logic/state/mapgen';
 import { hexNeighbors, hexEquals } from '../../src/logic/hex';
+import { checkVictory } from '../../src/logic/state/victory';
 import type { GameState, GameConfig, UnitState, CityState } from '../../src/logic/state/types';
 
 function makeState(seed = 7): GameState {
   const config: GameConfig = {
     mapSize: { width: 16, height: 12 },
     civChoices: [{ id: 'rome', isAI: false }, { id: 'greece', isAI: true }],
-    difficulty: 'standard',
+    difficulty: 'prince',
     maxTurns: 300,
   };
   return createInitialState(seed, config);
@@ -364,7 +365,7 @@ describe('combat 死亡场景', () => {
     const city: CityState = {
       id: 'ct', ownerId: 'player-1', name: 'A', tile: spawn, territory: [spawn], workedTiles: [spawn],
       population: 2, food: 0, culture: 0, housing: 2, amenities: 1, buildings: ['monument', 'ancient_walls'],
-      districts: [], wonders: [], queue: [], hp: 200, wallsHp: 200, wallsMax: 200, isCapital: true, rangedStrikeUsed: false,
+      districts: [], wonders: [], queue: [], hp: 200, wallsHp: 200, wallsMax: 200, isCapital: true, rangedStrikeUsed: false, religion: {}, dominantReligion: null,
     };
     p1.cities.push(city);
     p1.capitalCityId = 'ct';
@@ -375,5 +376,48 @@ describe('combat 死亡场景', () => {
     // 有城墙时非攻城单位打不到本体
     expect(city.hp).toBe(cityHpBefore);
     expect(city.wallsHp).toBeLessThan(200);
+  });
+
+  it('resolveAttack 丘陵防御加成', () => {
+    const state = makeState();
+    const p1 = state.players[0];
+    const p2 = state.players[1];
+    // 让攻击者和防御者在丘陵上
+    const attacker: UnitState = { id: 'att', ownerId: p1.id, type: 'warrior', tile: { q: 3, r: 3 }, hp: 100, moveLeft: 2, xp: 0, level: 1, promotions: [], charges: undefined, hasActed: false };
+    const defender: UnitState = { id: 'def', ownerId: p2.id, type: 'warrior', tile: { q: 4, r: 3 }, hp: 100, moveLeft: 2, xp: 0, level: 1, promotions: [], charges: undefined, hasActed: false };
+    p1.units.push(attacker);
+    p2.units.push(defender);
+    state.diplomacy[p1.id][p2.id] = 'war';
+    state.diplomacy[p2.id][p1.id] = 'war';
+    const tile = getTile(state.map, defender.tile);
+    if (tile) tile.terrain = 'hills';
+    resolveAttack(state, attacker, defender);
+    expect(defender.hp).toBeLessThan(100);
+  });
+
+  it('文化胜利条件（旅游）', () => {
+    let state = makeState();
+    const player = state.players[0];
+    const p2 = state.players[1];
+    player.totalTourism = 1000;
+    player.totalCultureGenerated = 2000;
+    p2.totalCultureGenerated = 500;
+    // 建城让对手存活
+    p2.cities.push({
+      id: 'p2-city', ownerId: p2.id, name: 'City', tile: { q: 5, r: 5 },
+      territory: [{ q: 5, r: 5 }], workedTiles: [{ q: 5, r: 5 }], population: 1, food: 0, culture: 0,
+      housing: 2, amenities: 1, buildings: [], districts: [], wonders: [], queue: [],
+      hp: 200, wallsHp: 0, wallsMax: 0, isCapital: true, rangedStrikeUsed: false, religion: {}, dominantReligion: null,
+    });
+    const result = checkVictory(state);
+    expect(result).toBeTruthy();
+    expect(result!.type).toBe('culture');
+  });
+
+  it('playerYield 包含旅游产出', () => {
+    const state = makeState();
+    const player = state.players[0];
+    const y = playerYield(state, player);
+    expect(y).toBeDefined();
   });
 });

@@ -2,7 +2,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { Application, Container, Graphics, Text, Polygon, Sprite, Texture } from 'pixi.js';
 import { useGame } from './store';
-import { hexToPixel, hexAdd, inBounds } from '../logic/hex';
+import { hexToPixel, hexAdd, inBounds, viewportHexBounds } from '../logic/hex';
 import { HEX_DIRECTIONS } from '../types';
 import { findUnit, currentPlayer } from '../logic/state/commands';
 import { cityAt } from '../logic/state/combat';
@@ -200,10 +200,11 @@ export function PixiMap({ onRequestAttack }: PixiMapProps = {}) {
     }
   }
 
-  function rebuildTerrainLayer(cam: { x: number; y: number }) {
+  function rebuildTerrainLayer(cam: { x: number; y: number }, vb: { minQ: number; maxQ: number; minR: number; maxR: number }) {
     const layer = terrainLayerRef.current!;
     layer.removeChildren();
     for (const t of state.map.tiles) {
+      if (t.coord.q < vb.minQ || t.coord.q > vb.maxQ || t.coord.r < vb.minR || t.coord.r > vb.maxR) continue;
       const p = hexToPixel(t.coord, DISP);
       const cx = p.x + DISP + cam.x;
       const cy = p.y + DISP + cam.y;
@@ -364,7 +365,12 @@ export function PixiMap({ onRequestAttack }: PixiMapProps = {}) {
     }
   }
 
-  function renderDynamicLayer(cam: { x: number; y: number }, player: PlayerState, selectedUnit: UnitState | null) {
+  function renderDynamicLayer(
+    cam: { x: number; y: number },
+    vb: { minQ: number; maxQ: number; minR: number; maxR: number },
+    player: PlayerState,
+    selectedUnit: UnitState | null
+  ) {
     const layer = dynamicLayerRef.current!;
     const reachable: HexCoord[] = selectedUnit && selectedUnit.ownerId === player.id
       ? reachableTiles(state, selectedUnit)
@@ -380,6 +386,7 @@ export function PixiMap({ onRequestAttack }: PixiMapProps = {}) {
     }
 
     for (const t of state.map.tiles) {
+      if (t.coord.q < vb.minQ || t.coord.q > vb.maxQ || t.coord.r < vb.minR || t.coord.r > vb.maxR) continue;
       const p = hexToPixel(t.coord, DISP);
       const cx = p.x + DISP + cam.x;
       const cy = p.y + DISP + cam.y;
@@ -387,9 +394,13 @@ export function PixiMap({ onRequestAttack }: PixiMapProps = {}) {
     }
   }
 
-  function renderDistrictsLayer(cam: { x: number; y: number }) {
+  function renderDistrictsLayer(
+    cam: { x: number; y: number },
+    vb: { minQ: number; maxQ: number; minR: number; maxR: number }
+  ) {
     const dlayer = districtsLayerRef.current!;
     for (const p of state.players) for (const c of p.cities) for (const d of c.districts) {
+      if (d.tile.q < vb.minQ || d.tile.q > vb.maxQ || d.tile.r < vb.minR || d.tile.r > vb.maxR) continue;
       const dTex = districtTexRef.current.get(d.type);
       if (!dTex) continue;
       const dp = hexToPixel(d.tile, DISP);
@@ -407,16 +418,17 @@ export function PixiMap({ onRequestAttack }: PixiMapProps = {}) {
       const player = currentPlayer(state);
       const cam = cameraOffsetFor(player, state.map.bounds, app.screen.width, app.screen.height);
       const selectedUnit = selectedUnitId ? findUnit(state, selectedUnitId) : null;
+      const vb = viewportHexBounds(cam, app.screen.width, app.screen.height, state.map.bounds, DISP, 2);
 
       // 地形层：每次直接重建（state.map 因 structuredClone 永远为新引用，复用优化无效）
-      rebuildTerrainLayer(cam);
+      rebuildTerrainLayer(cam, vb);
 
       // 清空动态层与区域层（销毁旧 DisplayObject 避免内存累积）
       clearLayer(dynamicLayerRef.current!);
       clearLayer(districtsLayerRef.current!);
 
-      renderDynamicLayer(cam, player, selectedUnit ?? null);
-      renderDistrictsLayer(cam);
+      renderDynamicLayer(cam, vb, player, selectedUnit ?? null);
+      renderDistrictsLayer(cam, vb);
     } catch (err) {
       setStatus('渲染错误: ' + (err as Error)?.message);
     }

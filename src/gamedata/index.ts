@@ -8,3 +8,7 @@ export * from './building';
 export * from './unit';
 export * from './wonder';
 export * from './civ';
+export * from './citystates';
+export * from './greatpeople';
+export * from './traderoutes';
+export * from './religion';

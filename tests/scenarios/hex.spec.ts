@@ -9,6 +9,7 @@ import {
   inBounds,
   allTiles,
   hexAdd,
+  viewportHexBounds,
 } from '../../src/logic/hex';
 
 describe('CP-00 六边形坐标数学', () => {
@@ -63,5 +64,40 @@ describe('CP-00 六边形坐标数学', () => {
   it('allTiles 产出 width*height 格', () => {
     expect(allTiles({ width: 10, height: 5 })).toHaveLength(50);
     expect(allTiles({ width: 60, height: 36 })).toHaveLength(2160);
+  });
+
+  it('viewportHexBounds 裁剪视口外格子', () => {
+    const bounds = { width: 60, height: 36 };
+    const size = 22;
+    // 相机在左上角，画布只够显示少量格子
+    const cam = { x: 0, y: 0 };
+    const vb = viewportHexBounds(cam, 200, 150, bounds, size, 0);
+    expect(vb.minQ).toBeGreaterThanOrEqual(0);
+    expect(vb.minR).toBeGreaterThanOrEqual(0);
+    expect(vb.maxQ).toBeLessThan(bounds.width);
+    expect(vb.maxR).toBeLessThan(bounds.height);
+    // 应远小于全图
+    expect(vb.maxQ - vb.minQ).toBeLessThan(20);
+    expect(vb.maxR - vb.minR).toBeLessThan(20);
+  });
+
+  it('viewportHexBounds 相机平移后范围跟随', () => {
+    const bounds = { width: 60, height: 36 };
+    const size = 22;
+    const vb1 = viewportHexBounds({ x: 0, y: 0 }, 200, 150, bounds, size, 0);
+    const vb2 = viewportHexBounds({ x: -500, y: -300 }, 200, 150, bounds, size, 0);
+    expect(vb2.minQ).toBeGreaterThan(vb1.minQ);
+    expect(vb2.minR).toBeGreaterThan(vb1.minR);
+  });
+
+  it('viewportHexBounds 不会超出地图边界', () => {
+    const bounds = { width: 10, height: 8 };
+    const size = 22;
+    // 相机推到右下角，视口部分超出地图
+    const vb = viewportHexBounds({ x: -400, y: -300 }, 400, 300, bounds, size, 5);
+    expect(vb.minQ).toBeGreaterThanOrEqual(0);
+    expect(vb.minR).toBeGreaterThanOrEqual(0);
+    expect(vb.maxQ).toBeLessThanOrEqual(bounds.width - 1);
+    expect(vb.maxR).toBeLessThanOrEqual(bounds.height - 1);
   });
 });
