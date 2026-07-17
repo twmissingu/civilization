@@ -1,6 +1,7 @@
 // 城邦逻辑：使者分配、宗主国判定、加成计算
 import type { GameState, PlayerState, CityStateInstance } from './types';
 import { CITY_STATES, type CityStateType } from '../../gamedata';
+import { isDefeated } from './commands';
 
 /** 计算所有城邦的宗主国（基于使者数量） */
 export function recomputeSuzerains(state: GameState): void {
@@ -18,10 +19,6 @@ export function recomputeSuzerains(state: GameState): void {
     }
     cs.suzerainId = bestPlayer;
   }
-}
-
-function isDefeated(p: PlayerState): boolean {
-  return p.cities.length === 0 && p.units.length === 0;
 }
 
 /** 检查玩家能否派遣使者到某城邦 */
@@ -62,7 +59,7 @@ export function envoyYieldPerEnvoy(type: CityStateType): { science?: number; cul
     case 'cultural': return { culture: 2 };
     case 'economic': return { gold: 3 };
     case 'religious': return { faith: 2 };
-    case 'military': return { production: 2 };
+    case 'military':
     case 'industrial': return { production: 2 };
   }
 }

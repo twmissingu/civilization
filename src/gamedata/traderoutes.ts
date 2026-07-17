@@ -28,17 +28,6 @@ export const MAX_TRADE_ROUTE_DISTANCE = 15;
 /** 最小贸易路线距离（不能送到同一城市） */
 export const MIN_TRADE_ROUTE_DISTANCE = 3;
 
-/** 基础贸易路线产出 */
-export function baseTradeYield(): Yield {
-  return { ...BASE_TRADE_YIELD };
-}
-
-/** 根据距离计算额外产出 */
-export function distanceBonusYield(distance: number): Partial<Yield> {
-  const bonus = Math.floor(distance * (DISTANCE_YIELD.gold ?? 0.5));
-  return { gold: bonus };
-}
-
 /** 计算贸易路线总产出（base + 距离加成） */
 export function tradeRouteYieldTotal(distance: number): Yield {
   return {

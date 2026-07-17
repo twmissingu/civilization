@@ -45,20 +45,10 @@ function randomLandNeighbor(state: GameState, tile: HexCoord, rng: ReturnType<ty
   return opts[Math.floor(rng.next() * opts.length)];
 }
 
-export function aiDecide(state: GameState, player: PlayerState): GameCommand[] {
+/** AI 研究决策：选择科技和市政（低难度随机，高难度选最便宜） */
+function aiResearch(state: GameState, player: PlayerState, rng: ReturnType<typeof createRng>): GameCommand[] {
   const commands: GameCommand[] = [];
-  const rng = createRng(hash(state.seed, state.turn, playerIdx(player.id)));
   const difficulty = state.config.difficulty;
-  const skipChanceMap: Record<Difficulty, number> = {
-    settler: 0.5,
-    chieftain: 0.35,
-    warlord: 0.2,
-    prince: 0.1,
-    king: 0.05,
-    emperor: 0,
-  };
-  const skipChance = skipChanceMap[difficulty];
-  const isHard = difficulty === 'king' || difficulty === 'emperor';
 
   // 战略层：研究（settler/chieftain 随机，其余选最便宜）
   if (!player.currentResearch) {
@@ -80,6 +70,13 @@ export function aiDecide(state: GameState, player: PlayerState): GameCommand[] {
     }
   }
 
+  return commands;
+}
+
+/** AI 宗教决策：选万神殿、创立宗教、购买传教士 */
+function aiReligion(state: GameState, player: PlayerState, rng: ReturnType<typeof createRng>): GameCommand[] {
+  const commands: GameCommand[] = [];
+
   // 宗教层：万神殿/创立宗教/购买传教士
   if (player.faith >= 25 && !player.pantheon) {
     const pantheonIds = Object.keys(PANTHEONS);
@@ -98,8 +95,20 @@ export function aiDecide(state: GameState, player: PlayerState): GameCommand[] {
     }
   }
 
+  return commands;
+}
+
+/** 判断单位域是否为军事类 */
+function isMilitaryDomain(domain: string): boolean {
+  return domain === 'melee' || domain === 'ranged' || domain === 'cavalry' || domain === 'siege' || domain === 'siege_ranged' || domain === 'naval_melee' || domain === 'naval_ranged';
+}
+
+/** AI 城市生产决策：根据军事/建造者/开拓者/商人需求选择训练单位 */
+function aiCityProduction(_state: GameState, player: PlayerState, isHard: boolean): GameCommand[] {
+  const commands: GameCommand[] = [];
+
   // 战术层：城市生产（hard 优先补军事）
-  const militaryCount = player.units.filter((u) => ['warrior', 'archer', 'swordsman', 'cavalry', 'knight'].includes(u.type)).length;
+  const militaryCount = player.units.filter((u) => UNITS[u.type] && isMilitaryDomain(UNITS[u.type].domain)).length;
   for (const city of player.cities) {
     if (city.queue.length > 0) continue;
     const builderCount = player.units.filter((u) => u.type === 'builder').length;
@@ -119,6 +128,13 @@ export function aiDecide(state: GameState, player: PlayerState): GameCommand[] {
       commands.push({ kind: 'trainUnit', cityId: city.id, unitType });
     }
   }
+
+  return commands;
+}
+
+/** AI 单位行动决策：建城/改良/传教/贸易/攻击/探索，按 skipChance 怠工 */
+function aiUnitActions(state: GameState, player: PlayerState, rng: ReturnType<typeof createRng>, skipChance: number): GameCommand[] {
+  const commands: GameCommand[] = [];
 
   // 战术层：单位行动（easy/standard 按 skipChance 怠工）
   for (const unit of player.units) {
@@ -198,6 +214,29 @@ export function aiDecide(state: GameState, player: PlayerState): GameCommand[] {
       }
     }
   }
+
+  return commands;
+}
+
+export function aiDecide(state: GameState, player: PlayerState): GameCommand[] {
+  const commands: GameCommand[] = [];
+  const rng = createRng(hash(state.seed, state.turn, playerIdx(player.id)));
+  const difficulty = state.config.difficulty;
+  const skipChanceMap: Record<Difficulty, number> = {
+    settler: 0.5,
+    chieftain: 0.35,
+    warlord: 0.2,
+    prince: 0.1,
+    king: 0.05,
+    emperor: 0,
+  };
+  const skipChance = skipChanceMap[difficulty];
+  const isHard = difficulty === 'king' || difficulty === 'emperor';
+
+  commands.push(...aiResearch(state, player, rng));
+  commands.push(...aiReligion(state, player, rng));
+  commands.push(...aiCityProduction(state, player, isHard));
+  commands.push(...aiUnitActions(state, player, rng, skipChance));
 
   commands.push({ kind: 'endTurn' });
   return commands;

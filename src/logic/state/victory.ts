@@ -1,5 +1,6 @@
 // 胜利判定（科技/统治/分数/宗教）
 import type { GameState, PlayerState } from './types';
+import { checkReligiousVictory } from './religion';
 
 export function checkVictory(state: GameState): { winnerId: string; type: string } | null {
   // 科技胜利：某玩家完成航天阶段 3
@@ -11,17 +12,8 @@ export function checkVictory(state: GameState): { winnerId: string; type: string
     }
   }
   // 宗教胜利：某玩家宗教是其他所有存活玩家城市的主流宗教
-  for (const p of state.players) {
-    if (!p.religionId) continue;
-    const others = state.players.filter((o) => o.id !== p.id && o.cities.length > 0);
-    if (others.length === 0) continue;
-    const allConverted = others.every((o) =>
-      o.cities.every((c) => c.dominantReligion === p.religionId)
-    );
-    if (allConverted) {
-      return { winnerId: p.id, type: 'religion' };
-    }
-  }
+  const rel = checkReligiousVictory(state);
+  if (rel) return rel;
   // 统治胜利：占领全部其他文明的原始首都
   const alive = state.players.filter((p) => p.cities.length > 0 || p.capitalCityId);
   for (const p of alive) {

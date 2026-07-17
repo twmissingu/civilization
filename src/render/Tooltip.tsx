@@ -2,6 +2,7 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { theme } from './theme';
+import { YIELD_LABELS } from '../logic/state/describe';
 
 interface TooltipProps {
   children: React.ReactNode;
@@ -325,15 +326,8 @@ function getYieldColor(key: string): string {
 }
 
 function getYieldName(key: string): string {
-  const names: Record<string, string> = {
-    food: '食物',
-    production: '产能',
-    gold: '金币',
-    science: '科技',
-    culture: '文化',
-    faith: '信仰',
-  };
-  return names[key] || key;
+  const label = YIELD_LABELS.find((l) => l.key === key);
+  return label?.full || key;
 }
 
 function getEffectName(key: string): string {

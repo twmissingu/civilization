@@ -1,6 +1,6 @@
 // 战斗结算（确定性，gamedata §7）
 import type { GameState, UnitState, CityState } from './types';
-import { UNITS } from '../../gamedata';
+import { UNITS, PROMOTIONS } from '../../gamedata';
 import { createRng, hash } from '../rng';
 import { hexEquals } from '../hex';
 import { findUnit, unitAt } from './query';
@@ -38,7 +38,7 @@ export function resolveAttack(state: GameState, attacker: UnitState, defender: U
   const aCS = unitCS(attacker);
   const dCS = unitCS(defender);
   const dTile = getTile(state.map, defender.tile);
-  const hillsBonus = dTile && dTile.terrain === 'hills' ? 3 : 0;
+  const hillsBonus = dTile && dTile.terrain === 'hills' ? 4 : 0;
   const dCSAdjusted = dCS + hillsBonus;
   const rng = createRng(hash(state.seed, state.turn, attacker.id, defender.id));
 
@@ -72,7 +72,7 @@ export function resolveAttack(state: GameState, attacker: UnitState, defender: U
     attacker.xp += defenderKilled ? 5 : 2;
     attacker.hasActed = true;
     // 晋升
-    if (attacker.xp >= attacker.level * 10 && attacker.level < 4) {
+    if (attacker.xp >= attacker.level * 10 && attacker.level < 5) {
       attacker.level += 1;
       attacker.xp = 0;
     }
@@ -184,4 +184,35 @@ export function previewCombat(state: GameState, attackerId: string, targetTile: 
     return { attackerCS: aCS, defenderCS: cCS, estDamage: 0, target: 'city', defenderHp: defCity.hp };
   }
   return null;
+}
+
+/** 获取单位可选的晋升列表 */
+export function availablePromotions(unit: UnitState): string[] {
+  const def = UNITS[unit.type];
+  if (!def) return [];
+  const domain = def.domain;
+  if (unit.level >= 5) return []; // 满级
+  const taken = new Set(unit.promotions);
+  return Object.values(PROMOTIONS)
+    .filter((p) => p.domains.includes(domain) && (p.requiresLevel ?? 1) <= unit.level && !taken.has(p.id))
+    .map((p) => p.id);
+}
+
+/** 应用晋升效果 */
+export function applyPromotion(unit: UnitState, promotionId: string): boolean {
+  const def = PROMOTIONS[promotionId];
+  if (!def) return false;
+  if (unit.promotions.includes(promotionId)) return false;
+  unit.promotions.push(promotionId);
+  unit.xp = 0;
+  // 立即生效：补给
+  if (def.healOnPromote) {
+    unit.hp = Math.min(100, unit.hp + def.healOnPromote);
+  }
+  return true;
+}
+
+/** 检查单位是否可晋升（有可用晋升且未选择） */
+export function canLevelUp(unit: UnitState): boolean {
+  return unit.xp >= unit.level * 10 && unit.level < 5 && availablePromotions(unit).length > 0;
 }

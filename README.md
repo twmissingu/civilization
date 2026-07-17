@@ -18,13 +18,18 @@ The architecture cleanly separates a **deterministic headless logic layer** (pur
 - 🗺️ Hex map (pointy-top) with deterministic Simplex map generation + fog of war
 - 🏛️ **Signature mechanic**: districts with adjacency bonuses (campus, holy site, commercial, etc.)
 - 📜 **Signature mechanic**: civics tree + 8 governments + policy cards (military/economic/wildcard)
-- 🔬 34-node tech tree with Eureka boosts; civic tree with Inspiration
+- 🚢 Trade routes: merchants, route management, automatic yields
+- ⛪ Religion: pantheons (8), founders, missionaries, apostles, pressure mechanics
+- 🏙️ City-states: 11 city-states, envoys, suzerain bonuses
+- 🏆 Great People: 5 categories with unique effects
+- 🏘️ 11 civilizations (Rome, China, Greece, Egypt, Aztec, England, America, Japan, Germany, France, Russia)
+- 🔬 70-node tech tree with Eureka boosts; 34-node civic tree with Inspiration
 - ⚔️ Combat with CS formula, city walls, siege units, zone of control, A* pathfinding
-- 🤖 Utility AI opponents (3 difficulty tiers: easy/standard/hard)
-- 🎨 67 AI-generated art assets (hand-painted parchment style) across all categories
-- 🏆 3 victory types: science (space race), domination, score
+- 🤖 Utility AI opponents (6 difficulty tiers: settler/chieftain/warlord/prince/king/emperor)
+- 🎨 94 AI-generated art assets (hand-painted parchment style) across all categories
+- 🏆 5 victory types: science (space race), domination, score, religion, culture
 - 💾 Save/load (IndexedDB + JSON export)
-- 🧪 116 tests, coverage ≥80%, layering enforced by dependency-cruiser + purity checks
+- 🧪 391 tests, coverage ≥90%, layering enforced by dependency-cruiser + purity checks
 
 ## Quick Start
 
@@ -46,7 +51,7 @@ Open the URL, pick your civ, found a city, and play.
 
 ### Verify
 ```bash
-npm test               # 116 logic-layer tests
+npm test               # 391 logic-layer + render tests
 npm run test:coverage   # coverage ≥80%
 npm run check           # purity + depcruise + coverage gates
 npm run build           # production build
@@ -89,4 +94,4 @@ PRs welcome. Follow existing style (strict TS, immutable state transitions via `
 
 ## Status
 
-Phase 1 MVP (v0.1.0). Full Civ VI base-game mechanics is the north star (later phases). See `docs/ROADMAP.md`.
+Phase 2+3 (v0.3.0) — trade, religion, culture victory, data expansion, AI difficulty tiers. Full Civ VI base-game mechanics is the north star. See `docs/ROADMAP.md`.

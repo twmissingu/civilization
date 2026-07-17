@@ -9,7 +9,7 @@ import { canPlaceDistrict } from './district';
 import { canResearch } from './tech';
 import { canResearchCivic, canChangeGovernment, changeGovernment, canSwitchPolicy, switchPolicy } from './civic';
 import { findPath, moveUnit } from './unitMove';
-import { resolveAttack, resolveAttackCity, cityAt, isEnemyCity } from './combat';
+import { resolveAttack, resolveAttackCity, cityAt, isEnemyCity, availablePromotions, applyPromotion, canLevelUp } from './combat';
 import { foundCity, buyTilePrice, settleCity, productionCost } from './city';
 import { playerYield } from './yield';
 import { resolveTurn } from './turnResolution';
@@ -49,7 +49,8 @@ export type GameCommand =
   | { kind: 'foundReligion' }
   | { kind: 'purchaseMissionary'; cityId: string }
   | { kind: 'purchaseApostle'; cityId: string }
-  | { kind: 'spreadReligion'; unitId: string; targetCityId: string };
+  | { kind: 'spreadReligion'; unitId: string; targetCityId: string }
+  | { kind: 'choosePromotion'; unitId: string; promotionId: string };
 
 // ---------- helpers（移至 query.ts，此处 re-export 保持兼容）----------
 export { findUnit, findCity, currentPlayer };
@@ -195,6 +196,13 @@ export function canExecute(state: GameState, cmd: GameCommand): RuleError | null
       const targetCity = findCity(state, cmd.targetCityId);
       if (!targetCity) return { code: 'NO_CITY', message: '目标城市不存在' };
       if (u.charges !== undefined && u.charges <= 0) return { code: 'NO_CHARGES', message: '无可用传教次数' };
+      return null;
+    }
+    case 'choosePromotion': {
+      const u = findUnit(state, cmd.unitId);
+      if (!u || u.ownerId !== player.id) return { code: 'OWNER', message: '非当前玩家单位' };
+      if (!canLevelUp(u)) return { code: 'CANT_LEVEL', message: '单位未达到升级条件' };
+      if (!availablePromotions(u).includes(cmd.promotionId)) return { code: 'NO_PROMOTION', message: '该晋升不可用' };
       return null;
     }
     case 'endTurn':
@@ -370,11 +378,24 @@ export function applyCommand(state: GameState, cmd: GameCommand): { state: GameS
       }
       break;
     }
+    case 'choosePromotion': {
+      const u = findUnit(s, cmd.unitId);
+      if (u) {
+        applyPromotion(u, cmd.promotionId);
+        events.push({ kind: 'UnitPromoted', turn: s.turn, payload: { unitId: cmd.unitId, promotionId: cmd.promotionId, unitType: u.type } });
+      }
+      break;
+    }
     case 'endTurn': {
       const prev = s.currentPlayerIndex;
       const next = nextActivePlayer(s);
       if (next <= prev) {
+        const logLen = s.log.length;
         resolveTurn(s);
+        // 收集 resolveTurn 中产生的日志事件（如 WonderBuilt/CityRebellion）
+        for (let i = logLen; i < s.log.length; i++) {
+          events.push(s.log[i]);
+        }
         if (s.status === 'finished') {
           events.push({ kind: 'GameWon', turn: s.turn, payload: { victor: s.winner!, victoryType: s.victoryType! } });
         }

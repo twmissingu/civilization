@@ -4,6 +4,7 @@ import { applyCommand, findUnit, canExecute, currentPlayer } from '../../src/log
 import { tileMoveCost } from '../../src/logic/state/unitMove';
 import { tileYield } from '../../src/logic/state/yield';import { districtAdjacencyBonus, canPlaceDistrict } from '../../src/logic/state/district';
 import { resolveAttackCity } from '../../src/logic/state/combat';
+import { resolveTurn } from '../../src/logic/state/turnResolution';
 import { triggerEureka, advanceResearch } from '../../src/logic/state/tech';
 import { techCost, TECHS } from '../../src/gamedata';
 import { getTile } from '../../src/logic/state/mapgen';
@@ -211,5 +212,33 @@ describe('政体解锁校验', () => {
   it('currentPlayer 返回当前玩家', () => {
     const state = makeState();
     expect(currentPlayer(state).id).toBe('player-0');
+  });
+});
+
+describe('叛乱机制', () => {
+  it('满意度为负的城市在 resolveTurn 中减少人口', () => {
+    const { state, city } = foundCityP0(makeState());
+    city.population = 4;
+    city.food = 20; // 够 survive settleCity 但不够增长
+    city.amenities = -1;
+    resolveTurn(state);
+    expect(city.population).toBe(3);
+    expect(city.food).toBe(0);
+  });
+  it('人口为 1 的城市满意度为负不会减少人口', () => {
+    const { state, city } = foundCityP0(makeState());
+    city.food = 10;
+    city.amenities = -1;
+    city.population = 1;
+    resolveTurn(state);
+    expect(city.population).toBe(1);
+  });
+  it('满意度非负的城市不会减少人口', () => {
+    const { state, city } = foundCityP0(makeState());
+    city.population = 4;
+    city.food = 20;
+    city.amenities = 0;
+    resolveTurn(state);
+    expect(city.population).toBe(4);
   });
 });

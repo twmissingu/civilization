@@ -98,7 +98,16 @@ export function formatEvent(state: GameState, event: GameEvent): string {
       return `第 ${event.turn} 回合 · ${civName(state, getString(p, 'playerId'))} 切换政体为 ${govName}`;
     }
     case 'GameWon': {
-      return `第 ${event.turn} 回合 · ${civName(state, getString(p, 'victor'))} 取得 ${getString(p, 'victoryType', '未知')} 胜利`;
+      return `第 ${event.turn} 回合 · ${civName(state, getString(p, 'victor'))} 取得 ${getString(p, 'victoryType', '未知')} 胜利！🏆`;
+    }
+    case 'UnitPromoted': {
+      return `第 ${event.turn} 回合 · ${unitName(state, getString(p, 'unitId'))} 获得晋升！⭐`;
+    }
+    case 'WonderBuilt': {
+      return `第 ${event.turn} 回合 · ${civName(state, getString(p, 'builderId'))} 建成 ${getString(p, 'wonderId', '奇观')}！✨`;
+    }
+    case 'CityRebellion': {
+      return `第 ${event.turn} 回合 · ${cityName(state, getString(p, 'cityId'))} 发生叛乱（宜居度过低），人口减少`;
     }
     default:
       return `第 ${event.turn} 回合 · ${event.kind}`;

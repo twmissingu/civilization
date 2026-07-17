@@ -49,6 +49,14 @@ export function resolveTurn(state: GameState): void {
       if (u.hp < 100) u.hp = Math.min(100, u.hp + 10);
     }
     for (const c of player.cities) c.rangedStrikeUsed = false;
+    // Rebellion: cities with amenities < 0 lose population
+    for (const c of player.cities) {
+      if (c.amenities < 0 && c.population > 1) {
+        c.food = 0;
+        c.population -= 1;
+        state.log.push({ kind: 'CityRebellion', turn: state.turn, payload: { cityId: c.id, ownerId: player.id, population: c.population } });
+      }
+    }
   }
   const v = checkVictory(state);
   if (v) {

@@ -88,6 +88,7 @@ export function PixiMap({ onRequestAttack }: PixiMapProps = {}) {
   const dynamicLayerRef = useRef<Container | null>(null);
   const districtsLayerRef = useRef<Container | null>(null);
   const tooltipRef = useRef<Text | null>(null);
+  const mapVersionRef = useRef<string>('');
   const [status, setStatus] = useState<string>('加载中…');
   const state = useGame((s) => s.state);
   const selectedUnitId = useGame((s) => s.selectedUnitId);
@@ -420,8 +421,14 @@ export function PixiMap({ onRequestAttack }: PixiMapProps = {}) {
       const selectedUnit = selectedUnitId ? findUnit(state, selectedUnitId) : null;
       const vb = viewportHexBounds(cam, app.screen.width, app.screen.height, state.map.bounds, DISP, 2);
 
-      // 地形层：每次直接重建（state.map 因 structuredClone 永远为新引用，复用优化无效）
-      rebuildTerrainLayer(cam, vb);
+      // 地形层：仅当 map tiles 实际变化时重建（引用 + 长度比较，避免 JSON.stringify 开销）
+      const mapLen = state.map.tiles.length;
+      const mapBoundsKey = state.map.bounds.width + ',' + state.map.bounds.height;
+      const mapVersion = mapLen + '|' + mapBoundsKey;
+      if (mapVersion !== mapVersionRef.current) {
+        mapVersionRef.current = mapVersion;
+        rebuildTerrainLayer(cam, vb);
+      }
 
       // 清空动态层与区域层（销毁旧 DisplayObject 避免内存累积）
       clearLayer(dynamicLayerRef.current!);

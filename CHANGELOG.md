@@ -5,6 +5,61 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [0.3.0] - 2026-07-17
+
+### Added
+
+#### Phase 2 核心扩展
+- 贸易路线：商人单位、路线建立、自动产出、AI 使用
+- 宗教系统：万神殿(8选1)、创立宗教、传教士/使徒、宗教压力、宗教胜利
+- 文化胜利：旅游业绩系统，基于文化产出
+- 城邦系统：11城邦、使者分配、宗主国加成
+- 大人物系统：5类伟人招募与效果
+- 机场区域 + 新增奇观/建筑/政体
+
+#### Phase 3 数据扩展
+- 科技树：34→70节点，覆盖全时代
+- 市政树：10→34节点，新增法西斯/共产主义/数字民主政体
+- 文明：3→11（罗马/中国/希腊/埃及/阿兹特克/英格兰/美国/日本/德国/法国/俄罗斯）
+- 新增单位：弩手/长枪兵/步兵/坦克/战斗机/轰炸机/战列舰/潜艇/机枪兵/反坦克组
+- AI 难度：6档（开拓者/酋长/亲王/国王/皇帝）
+
+#### HUD/UX 全面打磨
+- 组件化重构：App.tsx 瘦身（-625行），提取 ~20 独立 UI 组件
+  （Sidebar/CityPanel/UnitPanel/ResearchPanel/CivicsPanel/GovernmentPanel/
+   DiplomacyPanel/VictoryBanner/TurnTodoPanel/TileInfoPanel/EventLogPanel/
+   EventLogOverlay/CivHeader/ConfirmDialogManager/Tooltip/AssetImage/ExpandableList）
+- 城市面板：每回合产出与 ETA、奇观建造、防止重复建造、产出图标常量化
+- 科技/市政/生产进度条与剩余回合估算
+- 全局本回合待办面板（含空政策槽提示）
+- 宣战/攻击/建城确认对话框与战斗预览
+- 结构化事件日志（保留 payload）
+- 地图视觉层级：已行动单位灰显、资源按类别分色、领土边界描边
+- 文明头像：显示胜利类型图标、修复排名平局处理
+- 胜利横幅：显示文明名称而非玩家 ID
+- 键盘快捷键（空格=结束回合/Tab=切换单位/?=帮助）
+
+#### Phase 4 平衡调优
+- 城市高人口增长放缓
+- 丘陵防御加成 +3 CS
+- 地形产出调整
+- AI 难度差异化加成
+
+### Changed
+- 逻辑层：reachableTiles（BFS 可达格子）、formatYield 抽象、日志上限 1000
+- combat 事件新增 attackerOwnerId/defenderOwnerId
+- PixiMap：拆分 draw() 渲染函数、添加单位瓦片索引避免 O(n²) 扫描
+- 美术资产：加载 AI 生成地形/地貌纹理
+- 文档：路线图、架构、交付报告、打磨日志更新
+
+### Fixed
+- eventLog combat 事件文明名解析 bug（unit ID→ownerId）
+- TurnTodoPanel 测试 DOM 泄漏 + 策略卡待办干扰
+- 代码评审发现：isDefeated 去重、宗教胜利检查复用、死代码清理
+
+### Removed
+- 未使用的 framer-motion 依赖
+
 ## [0.2.0] - 2026-07-13
 
 ### Added

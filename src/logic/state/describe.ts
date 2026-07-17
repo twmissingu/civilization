@@ -55,7 +55,7 @@ const RESOURCE_LABELS: Record<string, string> = {
   iron: '铁', horse: '马', spice: '香料', silk: '丝绸',
 };
 
-const RESOURCE_CATEGORY_LABELS: Record<string, string> = {
+export const RESOURCE_CATEGORY_LABELS: Record<string, string> = {
   bonus: '加成资源', luxury: '奢侈资源', strategic: '战略资源',
 };
 
@@ -98,13 +98,13 @@ export function improvementDescription(improvement: string): string {
   return IMPROVEMENT_DESCRIPTIONS[improvement] ?? '未知改良';
 }
 
-interface YieldLabel {
+export interface YieldLabel {
   key: keyof Yield;
   short: string;
   full: string;
 }
 
-const YIELD_LABELS: YieldLabel[] = [
+export const YIELD_LABELS: YieldLabel[] = [
   { key: 'food', short: '粮', full: '食物' },
   { key: 'production', short: '产', full: '产能' },
   { key: 'gold', short: '金', full: '金币' },

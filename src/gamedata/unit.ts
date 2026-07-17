@@ -50,6 +50,37 @@ export const UNITS: Record<string, UnitDef> = {
   machine_gun: { id: 'machine_gun', name: '机枪兵', domain: 'ranged', unitClass: 'military', csMelee: 20, csRanged: 55, hp: 100, move: 2, vision: 2, cost: 350, maintenance: 4, unlockTech: 'steel', ranged: 1, upgradesFrom: 'crossbowman' },
 };
 
+/** 单位晋升定义 */
+export interface PromotionDef {
+  id: string;
+  name: string;
+  domains: UnitDomain[];
+  csBonus?: number;
+  moveBonus?: number;
+  healOnPromote?: number;
+  requiresLevel?: number;
+}
+
+/** 晋升树 */
+export const PROMOTIONS: Record<string, PromotionDef> = {
+  // 近战晋升
+  discipline: { id: 'discipline', name: '纪律', domains: ['melee'], csBonus: 5, requiresLevel: 1 },
+  charge: { id: 'charge', name: '冲锋', domains: ['melee', 'cavalry'], csBonus: 7, requiresLevel: 2 },
+  veteran: { id: 'veteran', name: '老兵', domains: ['melee', 'ranged'], csBonus: 10, requiresLevel: 3 },
+  // 远程晋升
+  volley: { id: 'volley', name: '齐射', domains: ['ranged'], csBonus: 5, requiresLevel: 1 },
+  sniper: { id: 'sniper', name: '精准', domains: ['ranged'], csBonus: 7, requiresLevel: 2 },
+  // 骑兵晋升
+  maneuver: { id: 'maneuver', name: '机动', domains: ['cavalry'], moveBonus: 1, requiresLevel: 1 },
+  shock: { id: 'shock', name: '冲击', domains: ['cavalry', 'melee'], csBonus: 5, requiresLevel: 2 },
+  // 攻城晋升
+  bombardment: { id: 'bombardment', name: '轰炸', domains: ['siege', 'siege_ranged'], csBonus: 7, requiresLevel: 1 },
+  shell: { id: 'shell', name: '炮击', domains: ['siege_ranged', 'ranged'], csBonus: 5, requiresLevel: 2 },
+  // 海军晋升
+  naval_maneuver: { id: 'naval_maneuver', name: '航海术', domains: ['naval_melee', 'naval_ranged'], moveBonus: 1, requiresLevel: 1 },
+  broadside: { id: 'broadside', name: '舷炮', domains: ['naval_melee', 'naval_ranged'], csBonus: 5, requiresLevel: 2 },
+};
+
 /** 单位是否施加 ZOC（近战/骑乘/海军近战） */
 export function exertsZOC(u: UnitDef): boolean {
   return u.domain === 'melee' || u.domain === 'cavalry' || u.domain === 'naval_melee';

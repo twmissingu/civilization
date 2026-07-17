@@ -17,7 +17,7 @@ export function cityHousing(city: CityState): number {
 }
 
 export function foodThreshold(pop: number): number {
-  return 15 + 10 * (pop - 1);
+  return 15 + 8 * (pop - 1);
 }
 
 /** 找扩张目标格：城中心 3 格内未归属、按距离+优先级 */
@@ -177,6 +177,7 @@ function completeProduction(state: GameState, city: CityState, item: ProductionI
     owner.districtsBuilt += 1;
   } else if (item.kind === 'wonder') {
     city.wonders.push({ id: item.id, tile: item.tile ?? city.tile });
+    state.log.push({ kind: 'WonderBuilt', turn: state.turn, payload: { builderId: owner.id, wonderId: item.id } });
   } else if (item.kind === 'project') {
     // space project 推进
     if (!city.spaceProject) city.spaceProject = { stage: 1, progress: 0 };
