@@ -126,15 +126,59 @@ export function reachableTiles(state: GameState, unit: UnitState): HexCoord[] {
 
 /** 执行移动：沿路径推进，消耗移动力，遇 ZOC 停步 */
 export function moveUnit(state: GameState, unit: UnitState, path: HexCoord[]): void {
-  const def = UNITS[unit.type];
   for (const step of path) {
     const cost = tileMoveCost(state, step);
     if (!isFinite(cost)) break;
-    // 河流过河惩罚：简化为 +1 若跨河（MVP 不精确判定，省略）
     if (unit.moveLeft < cost) break;
     unit.moveLeft -= cost;
     unit.tile = step;
     if (inEnemyZOC(state, step, unit)) break; // ZOC 强制停步
   }
-  void def;
+  // 移动后更新视野：reveal 周围 2 格
+  revealArea(state, unit.tile, 2);
+}
+
+/** 视野半径 map */
+const SIGHT_RANGES: Record<string, number> = {
+  settler: 2, builder: 2, warrior: 2, archer: 2, slinger: 2,
+  swordsman: 2, cavalry: 3, knight: 3, siege_tower: 2, catapult: 2,
+  cannon: 2, trireme: 3, quadrireme: 3, musketman: 2,
+};
+
+/** 更新指定坐标周围半径内的地块可见性 */
+export function revealArea(state: GameState, center: HexCoord, range: number): void {
+  const { map } = state;
+  for (let dq = -range; dq <= range; dq++) {
+    const rMin = Math.max(-range, -dq - range);
+    const rMax = Math.min(range, -dq + range);
+    for (let dr = rMin; dr <= rMax; dr++) {
+      const coord: HexCoord = { q: center.q + dq, r: center.r + dr };
+      if (!inBounds(coord, map.bounds)) continue;
+      const idx = coord.r * map.bounds.width + coord.q;
+      const tile = map.tiles[idx];
+      if (tile) {
+        if (tile.visibility === 'unexplored') tile.visibility = 'explored';
+        tile.visibility = 'visible';
+      }
+    }
+  }
+}
+
+/** 更新地图上所有当前玩家单位的视野 */
+export function updatePlayerVisibility(state: GameState, playerId: string): void {
+  const player = state.players.find((p) => p.id === playerId);
+  if (!player) return;
+  // 先重置所有 tile 可见性（仅保留 explored 标记）
+  for (const tile of state.map.tiles) {
+    if (tile.visibility === 'visible') tile.visibility = 'explored';
+  }
+  // 按单位视野重新 reveal
+  for (const unit of player.units) {
+    const range = SIGHT_RANGES[unit.type] ?? 2;
+    revealArea(state, unit.tile, range);
+  }
+  // 按城市视野重新 reveal
+  for (const city of player.cities) {
+    revealArea(state, city.tile, 3);
+  }
 }

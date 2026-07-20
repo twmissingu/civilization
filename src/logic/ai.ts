@@ -242,9 +242,10 @@ export function aiDecide(state: GameState, player: PlayerState): GameCommand[] {
   return commands;
 }
 
-/** 运行 AI 回合直到轮到人类玩家或游戏结束 */
-export function runAIUntilHuman(state: GameState): GameState {
+/** 运行 AI 回合直到轮到人类玩家或游戏结束，返回最终状态与所有 AI 产生的事件 */
+export function runAIUntilHuman(state: GameState): { state: GameState; events: import('./state/types').GameEvent[] } {
   let s = state;
+  const events: import('./state/types').GameEvent[] = [];
   let guard = 0;
   while (s.status === 'active' && s.players[s.currentPlayerIndex].isAI && guard < 200) {
     guard++;
@@ -257,13 +258,16 @@ export function runAIUntilHuman(state: GameState): GameState {
         s = res.state;
         progressed = true;
       }
+      events.push(...res.events);
       if (cmd.kind === 'endTurn') break;
       if (s.status === 'finished') break;
     }
     if (!progressed) {
-      s = applyCommand(s, { kind: 'endTurn' }).state;
+      const res = applyCommand(s, { kind: 'endTurn' });
+      s = res.state;
+      events.push(...res.events);
     }
     if (s.status === 'finished') break;
   }
-  return s;
+  return { state: s, events };
 }

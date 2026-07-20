@@ -1,8 +1,8 @@
 // 研究面板
 import { forwardRef } from 'react';
 import { useGame } from './store';
-import { currentPlayer } from '../logic/state/commands';
-import { canResearch } from '../logic/state/tech';
+import { currentPlayer } from '../logic/state/query';
+import { canPlayerResearch } from '../logic/state/query';
 import { TECHS, techCost } from '../gamedata';
 import { TechTooltip } from './Tooltip';
 import { ExpandableList } from './ExpandableList';
@@ -16,7 +16,7 @@ export const ResearchPanel = forwardRef<HTMLDivElement>(function ResearchPanel(_
   const command = useGame((s) => s.command);
   const player = currentPlayer(state);
   const current = player.currentResearch;
-  const availableTechs = Object.values(TECHS).filter((t) => canResearch(player, t.id));
+  const availableTechs = Object.values(TECHS).filter((t) => canPlayerResearch(state, t.id));
 
   const researchProgress = current
     ? `${current.progress}/${techCost(TECHS[current.techId], player.researchedTechs.length)} · ${formatTurns(

@@ -1,7 +1,7 @@
 // 政体与政策卡面板
 import { useGame } from './store';
-import { currentPlayer } from '../logic/state/commands';
-import { canChangeGovernment, canSwitchPolicy } from '../logic/state/civic';
+import { currentPlayer } from '../logic/state/query';
+import { canPlayerChangeGovernment, canPlayerSwitchPolicy } from '../logic/state/query';
 import { GOVERNMENTS, POLICY_CARDS } from '../gamedata';
 import { Tooltip } from './Tooltip';
 import { AssetImage } from './AssetImage';
@@ -35,13 +35,18 @@ export function GovernmentPanel() {
   return (
     <div style={{ marginBottom: theme.spacing.md }}>
       <b>政体</b>：{GOVERNMENTS[player.government]?.name}
-      <div style={{ fontSize: 10, color: theme.colors.textMuted, marginBottom: 2 }}>
+      <div style={{ fontSize: 10, color: theme.colors.textMuted, marginBottom: 4 }}>
+        {GOVERNMENTS[player.government]?.bonus && (
+          <div style={{ color: theme.colors.accent, fontSize: 10, marginBottom: 2 }}>
+            {GOVERNMENTS[player.government]?.bonus}
+          </div>
+        )}
         槽位：
         {player.policySlots.map((s, i) => (
           <span key={i} style={{ marginRight: 4 }}>
             [{policySlotTypeLabel(player, i)}]
             {s ? (
-              <Tooltip content={POLICY_CARDS[s]?.name ?? s}>
+              <Tooltip content={`${POLICY_CARDS[s]?.name}: ${POLICY_CARDS[s]?.effect ?? ''}`}>
                 <span style={{ color: theme.colors.accent, cursor: 'help' }}>{POLICY_CARDS[s]?.name ?? s}</span>
               </Tooltip>
             ) : (
@@ -52,7 +57,7 @@ export function GovernmentPanel() {
       </div>
       <div style={{ fontSize: 10, color: theme.colors.textDim }}>切换：</div>
       {Object.values(GOVERNMENTS)
-        .filter((g) => canChangeGovernment(player, g.id) && g.id !== player.government)
+        .filter((g) => canPlayerChangeGovernment(state, g.id) && g.id !== player.government)
         .slice(0, 5)
         .map((g) => (
           <button
@@ -69,7 +74,7 @@ export function GovernmentPanel() {
         .slice(0, 8)
         .map((c) => {
           const slot = firstEmptySlot(player, c.type);
-          const canAssign = slot !== null && canSwitchPolicy(player, c.id, slot);
+          const canAssign = slot !== null && canPlayerSwitchPolicy(state, c.id, slot);
           return (
             <button
               key={c.id}

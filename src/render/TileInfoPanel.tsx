@@ -1,8 +1,7 @@
 // 悬停地块信息面板
 import { useGame } from './store';
-import { currentPlayer, findUnit } from '../logic/state/commands';
-import { describeTile } from '../logic/state/describe';
-import { previewCombat } from '../logic/state/combat';
+import { currentPlayer, findUnit } from '../logic/state/query';
+import { getTileInfo, getCombatPreview } from '../logic/state/query';
 import { theme } from './theme';
 import { panelStyle } from './uiStyles';
 
@@ -18,9 +17,9 @@ export function TileInfoPanel() {
   return (
     <div style={{ ...panelStyle, background: theme.colors.bg }}>
       <b>地块信息</b>
-      <div style={{ fontSize: 11, color: theme.colors.textMuted, whiteSpace: 'pre-line' }}>{describeTile(state, hoveredTile)}</div>
+      <div style={{ fontSize: 11, color: theme.colors.textMuted, whiteSpace: 'pre-line' }}>{getTileInfo(state, hoveredTile)}</div>
       {unit && unit.ownerId === player.id && (() => {
-        const pv = previewCombat(state, unit.id, hoveredTile);
+        const pv = getCombatPreview(state, unit.id, hoveredTile);
         if (!pv) return null;
         return (
           <div style={{ fontSize: 11, color: theme.colors.warning, marginTop: 4 }}>

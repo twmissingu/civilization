@@ -5,6 +5,7 @@ import { createRng } from '../rng';
 import { generateMap, getTile } from './mapgen';
 import { CIVILIZATIONS, CITY_STATES } from '../../gamedata';
 import { allTiles, hexDistance, type MapBounds } from '../hex';
+import { revealArea } from './unitMove';
 
 function findSpawns(bounds: MapBounds, count: number, seed: number): HexCoord[] {
   const rng = createRng(seed).fork('spawns');
@@ -109,7 +110,7 @@ export function createInitialState(seed: number, config: GameConfig): GameState 
     }
   }
 
-  return {
+  const result: GameState = {
     version: 1,
     seed,
     config,
@@ -123,7 +124,6 @@ export function createInitialState(seed: number, config: GameConfig): GameState 
     diplomacy,
     unitIdCounter: config.civChoices.length * 2,
     cityIdCounter: 0,
-    log: [],
     cityStates: Object.keys(CITY_STATES).map((id) => ({
       id,
       envoys: {},
@@ -131,4 +131,11 @@ export function createInitialState(seed: number, config: GameConfig): GameState 
       isAlive: true,
     })),
   };
+
+  // 初始 reveal：玩家 0 出生点周围
+  for (const unit of result.players[0].units) {
+    revealArea(result, unit.tile, 2);
+  }
+
+  return result;
 }

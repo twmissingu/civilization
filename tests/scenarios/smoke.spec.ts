@@ -23,7 +23,7 @@ describe('端到端可玩冒烟', () => {
     state = applyCommand(state, { kind: 'research', techId: 'pottery' }).state;
     for (let i = 0; i < 80 && state.status === 'active'; i++) {
       state = applyCommand(state, { kind: 'endTurn' }).state;
-      state = runAIUntilHuman(state);
+      state = runAIUntilHuman(state).state;
     }
     expect(state.turn).toBeGreaterThan(1);
     // 至少有一座人类城市存活
@@ -40,7 +40,7 @@ describe('端到端可玩冒烟', () => {
     state = applyCommand(state, { kind: 'foundCity', unitId: settler.id, name: 'Roma' }).state;
     for (let i = 0; i < 40 && state.status === 'active'; i++) {
       state = applyCommand(state, { kind: 'endTurn' }).state;
-      state = runAIUntilHuman(state);
+      state = runAIUntilHuman(state).state;
     }
     const aiCities = state.players.filter((p) => p.isAI).reduce((a, p) => a + p.cities.length, 0);
     expect(aiCities).toBeGreaterThanOrEqual(2);
@@ -74,7 +74,7 @@ describe('端到端可玩冒烟', () => {
     while (state.status === 'active' && guard < 500) {
       guard++;
       state = applyCommand(state, { kind: 'endTurn' }).state;
-      state = runAIUntilHuman(state);
+      state = runAIUntilHuman(state).state;
     }
     expect(state.status).toBe('finished');
     expect(state.winner).toBeDefined();

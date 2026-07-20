@@ -4,7 +4,7 @@
 import { createNoise2D } from 'simplex-noise';
 import type { HexCoord } from '../../types';
 import type { Rng } from '../rng';
-import { allTiles, type MapBounds } from '../hex';
+import { allTiles, hexNeighbors, inBounds, type MapBounds } from '../hex';
 
 export type { MapBounds };
 
@@ -150,9 +150,10 @@ export function generateMap(bounds: MapBounds, rng: Rng): GameMap {
   const moistRng = rng.fork('moisture');
   const featRng = rng.fork('features');
   const resRng = rng.fork('resources');
-
   const elevNoise = createNoise2D(() => elevRng.next());
   const moistNoise = createNoise2D(() => moistRng.next());
+
+  const RIVER_THRESHOLD = 0.62;
 
   const tiles: Tile[] = [];
   for (const coord of allTiles(bounds)) {
@@ -172,6 +173,36 @@ export function generateMap(bounds: MapBounds, rng: Rng): GameMap {
       moisture: moist,
       visibility: 'unexplored',
     });
+  }
+
+  // 河流生成：高 moisture 陆地块标记为河流，确保连续性
+  for (const tile of tiles) {
+    const isLand = tile.terrain !== 'ocean' && tile.terrain !== 'coast' && tile.terrain !== 'mountain';
+    if (!isLand) continue;
+    const hasRiverNeighbor = hexNeighbors(tile.coord).some((n) => {
+      if (!inBounds(n, bounds)) return false;
+      const nt = tiles[n.r * bounds.width + n.q];
+      return nt && nt.terrain !== 'ocean' && nt.terrain !== 'coast' && nt.terrain !== 'mountain' && nt.isRiver;
+    });
+    // 高 moisture 或相邻已有河流则标记
+    if (tile.moisture > RIVER_THRESHOLD || hasRiverNeighbor) {
+      tile.isRiver = true;
+    }
+  }
+
+  // 第二遍：用河流 seed 扩散，形成连续河流
+  for (const tile of tiles) {
+    if (tile.isRiver) continue;
+    const isLand = tile.terrain !== 'ocean' && tile.terrain !== 'coast' && tile.terrain !== 'mountain';
+    if (!isLand) continue;
+    const riverNeighbors = hexNeighbors(tile.coord).filter((n) => {
+      if (!inBounds(n, bounds)) return false;
+      const nt = tiles[n.r * bounds.width + n.q];
+      return nt && nt.isRiver;
+    });
+    if (riverNeighbors.length >= 2 && tile.moisture > RIVER_THRESHOLD - 0.1) {
+      tile.isRiver = true;
+    }
   }
 
   for (const tile of tiles) {

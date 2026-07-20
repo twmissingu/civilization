@@ -1,7 +1,8 @@
 // 本回合待办面板：列出所有未行动单位、空闲城市、未选科技/市政/空政策槽等
 import { theme } from './theme';
+import { useGame } from './store';
 import { UNITS, TECHS, CIVICS, POLICY_CARDS } from '../gamedata';
-import { canSwitchPolicy } from '../logic/state/civic';
+import { canPlayerSwitchPolicy } from '../logic/state/query';
 import type { PlayerState } from '../logic/state/types';
 
 interface TurnTodoPanelProps {
@@ -13,6 +14,7 @@ interface TurnTodoPanelProps {
 }
 
 export function TurnTodoPanel({ player, onSelectUnit, onSelectCity, onOpenResearch, onOpenCivics }: TurnTodoPanelProps) {
+  const state = useGame((s) => s.state);
   const items: { id: string; label: string; kind: 'unit' | 'city' | 'tech' | 'civic' | 'policy'; onClick: () => void }[] = [];
 
   for (const u of player.units) {
@@ -65,7 +67,7 @@ export function TurnTodoPanel({ player, onSelectUnit, onSelectCity, onOpenResear
   const hasAssignablePolicy =
     emptySlotIndex !== -1 &&
     Object.values(POLICY_CARDS).some(
-      (c) => player.researchedCivics.includes(c.unlockCivic) && canSwitchPolicy(player, c.id, emptySlotIndex)
+      (c) => player.researchedCivics.includes(c.unlockCivic) && canPlayerSwitchPolicy(state, c.id, emptySlotIndex)
     );
   if (hasAssignablePolicy) {
     items.push({

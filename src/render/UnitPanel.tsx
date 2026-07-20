@@ -1,8 +1,8 @@
 // 选中单位面板
 import { useGame } from './store';
-import { currentPlayer, findUnit } from '../logic/state/commands';
+import { currentPlayer, findUnit } from '../logic/state/query';
 import { UNITS, IMPROVEMENTS, CIVILIZATIONS } from '../gamedata';
-import { canBuildImprovement } from '../logic/state/builder';
+import { canUnitBuildImprovement } from '../logic/state/query';
 import { AssetImage } from './AssetImage';
 import { theme } from './theme';
 import { panelStyle, btnStyle } from './uiStyles';
@@ -29,7 +29,7 @@ export function UnitPanel({ onRequestFoundCity }: UnitPanelProps) {
   if (unit.ownerId === player.id) {
     const buildableImprovements =
       unit.type === 'builder' && unit.charges !== undefined
-        ? Object.values(IMPROVEMENTS).filter((imp) => canBuildImprovement(state, unit, imp.id))
+        ? Object.values(IMPROVEMENTS).filter((imp) => canUnitBuildImprovement(state, unit.id, imp.id))
         : [];
     return (
       <div style={panelStyle}>

@@ -18,7 +18,7 @@ function playAIBlock(state: GameState, turns: number): GameState {
   let s = state;
   for (let i = 0; i < turns && s.status === 'active'; i++) {
     s = applyCommand(s, { kind: 'endTurn' }).state;
-    s = runAIUntilHuman(s);
+    s = runAIUntilHuman(s).state;
   }
   return s;
 }

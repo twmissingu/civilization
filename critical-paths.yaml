@@ -1,0 +1,84 @@
+# 关键路径门禁（Phase 1 MVP）
+# 每个 key 描述一条必须经过测试覆盖的玩家操作路径
+# 测试集中在 tests/scenarios/ 下
+
+paths:
+  - id: CP-00
+    description: 新游戏 -> 建城 -> 确认城市存在
+    scenario: coverage.spec.ts
+    condition: "玩家 0 建立城市后城市数量 > 0"
+
+  - id: CP-01
+    description: 建城 -> 改良（建造者建造农场） -> 确认地块产出变化
+    scenario: coverage.spec.ts
+    condition: "建城后建造者建造农场，地块产出增加"
+
+  - id: CP-02
+    description: 建城 -> 研究科技 -> 科技进度推进
+    scenario: coverage.spec.ts
+    condition: "研究科技后 currentResearch.progress > 0"
+
+  - id: CP-03
+    description: 建城 -> 训练单位 -> 单位出现在城中
+    scenario: coverage.spec.ts
+    condition: "训练单位入列后从队列中产出"
+
+  - id: CP-04
+    description: 单位移动 -> 攻击敌方单位 -> 确认伤害
+    scenario: combat-coverage.spec.ts
+    condition: "攻击后敌方单位 hp 减少"
+
+  - id: CP-05
+    description: 单位移动 -> 攻击敌方城市 -> 确认城市耐久减少
+    scenario: combat-coverage.spec.ts
+    condition: "攻击城市后城市 hp 减少"
+
+  - id: CP-06
+    description: 建城 -> 建城（第二座） -> 扩张领土
+    scenario: coverage.spec.ts
+    condition: "第二座城市建立后两城共存"
+
+  - id: CP-07
+    description: 研究科技 -> 研究市政 -> 确认两者同时推进
+    scenario: coverage.spec.ts
+    condition: "科技和市政同时研究时进度均推进"
+
+  - id: CP-08
+    description: 建城 -> 放置区域 -> 区域出现在城市中
+    scenario: coverage.spec.ts
+    condition: "区域放置后 city.districts 包含该区域"
+
+  - id: CP-09
+    description: 建城 -> 建造奇观 -> 奇观完成
+    scenario: coverage.spec.ts
+    condition: "奇观建造后城市 wonders 包含该奇观"
+
+  - id: CP-10
+    description: endTurn -> AI 执行 -> 回到人类玩家回合
+    scenario: smoke.spec.ts
+    condition: "endTurn 后 currentPlayerIndex 回到 0"
+
+  - id: CP-11
+    description: 存档 -> 读取 -> 状态一致 (round-trip)
+    scenario: save-corruption.spec.ts
+    condition: "序列化/反序列化后状态完全一致"
+
+  - id: CP-12
+    description: 单位升级 -> 选择晋升 -> 确认晋升生效
+    scenario: promotion.spec.ts
+    condition: "单位升级后拥有晋升列表"
+
+  - id: CP-13
+    description: 贸易路线 -> 建立贸易路线 -> 产出变化
+    scenario: trade.spec.ts
+    condition: "贸易路线建立后产出变化"
+
+  - id: CP-14
+    description: 宗教 -> 创立万神殿 -> 确认万神殿效果
+    scenario: religion.spec.ts
+    condition: "万神殿创立后 player.pantheon 非空"
+
+  - id: CP-15
+    description: 城邦 -> 派遣使者 -> 确认使者数量
+    scenario: citystate.spec.ts
+    condition: "派遣使者后城邦 envoys 增加"

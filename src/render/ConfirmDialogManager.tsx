@@ -1,9 +1,7 @@
 // 集中管理确认对话框
 import { useGame } from './store';
-import { findUnit } from '../logic/state/commands';
-import { cityAt } from '../logic/state/combat';
-import { previewCombat } from '../logic/state/combat';
-import { getTile } from '../logic/state/mapgen';
+import { findUnit } from '../logic/state/query';
+import { cityAt, getCombatPreview, getTileAt } from '../logic/state/query';
 import { UNITS, CIVILIZATIONS } from '../gamedata';
 import { ConfirmDialog } from './ConfirmDialog';
 import { theme } from './theme';
@@ -49,7 +47,7 @@ export function ConfirmDialogManager({ pendingConfirm, onClose }: ConfirmDialogM
 
   if (pendingConfirm.type === 'attack') {
     const attacker = findUnit(state, pendingConfirm.attackerId);
-    const pv = attacker ? previewCombat(state, attacker.id, pendingConfirm.targetTile) : null;
+    const pv = attacker ? getCombatPreview(state, attacker.id, pendingConfirm.targetTile) : null;
     const targetUnit = state.players
       .flatMap((p) => p.units)
       .find((u) => u.tile.q === pendingConfirm.targetTile.q && u.tile.r === pendingConfirm.targetTile.r);
@@ -89,7 +87,7 @@ export function ConfirmDialogManager({ pendingConfirm, onClose }: ConfirmDialogM
 
   // foundCity
   const settler = findUnit(state, pendingConfirm.unitId);
-  const tile = settler ? getTile(state.map, settler.tile) : null;
+  const tile = settler ? getTileAt(state, settler.tile) : null;
   return (
     <ConfirmDialog
       isOpen

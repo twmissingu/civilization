@@ -1,6 +1,5 @@
 // 右侧边栏
-import { useGame } from './store';
-import { currentPlayer } from '../logic/state/commands';
+import { useGame, useCurrentPlayer } from './store';
 import { CivHeader } from './CivHeader';
 import { EventLogPanel } from './EventLogPanel';
 import { TurnTodoPanel } from './TurnTodoPanel';
@@ -11,6 +10,11 @@ import { DiplomacyPanel } from './DiplomacyPanel';
 import { UnitPanel } from './UnitPanel';
 import { CityPanel } from './CityPanel';
 import { TileInfoPanel } from './TileInfoPanel';
+import { ReligionPanel } from './ReligionPanel';
+import { CityStatePanel } from './CityStatePanel';
+import { GreatPeoplePanel } from './GreatPeoplePanel';
+import { TradeRoutePanel } from './TradeRoutePanel';
+import { VictoryProgressPanel } from './VictoryProgressPanel';
 import { theme } from './theme';
 
 interface SidebarProps {
@@ -21,8 +25,7 @@ interface SidebarProps {
 }
 
 export function Sidebar({ researchRef, civicRef, onRequestWar, onRequestFoundCity }: SidebarProps) {
-  const state = useGame((s) => s.state);
-  const player = currentPlayer(state);
+  const player = useCurrentPlayer();
   const selectUnit = useGame((s) => s.selectUnit);
   const selectCity = useGame((s) => s.selectCity);
 
@@ -51,6 +54,11 @@ export function Sidebar({ researchRef, civicRef, onRequestWar, onRequestFoundCit
       <CityPanel />
       <TileInfoPanel />
       <CivHeader />
+      <VictoryProgressPanel />
+      <ReligionPanel />
+      <CityStatePanel />
+      <GreatPeoplePanel />
+      <TradeRoutePanel />
       <ResearchPanel ref={researchRef} />
       <CivicsPanel ref={civicRef} />
       <GovernmentPanel />

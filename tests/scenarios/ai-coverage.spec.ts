@@ -154,7 +154,7 @@ describe('AI 全面覆盖', () => {
   it('runAIUntilHuman 完成 AI 回合', () => {
     const state = makeState(42, 'prince');
     let s = applyCommand(state, { kind: 'endTurn' }).state;
-    s = runAIUntilHuman(s);
+    s = runAIUntilHuman(s).state;
     // 结果应为人类玩家回合或游戏结束
     const isHumanTurn = s.status === 'active' && !s.players[s.currentPlayerIndex].isAI;
     const isFinished = s.status === 'finished';

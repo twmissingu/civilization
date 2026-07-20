@@ -28,7 +28,7 @@ describe('AI 决策', () => {
   it('runAIUntilHuman 跑完 AI 回合回到人类玩家', () => {
     let state = makeState();
     state = applyCommand(state, { kind: 'endTurn' }).state; // -> player 1 (AI)
-    state = runAIUntilHuman(state);
+    state = runAIUntilHuman(state).state;
     expect(state.players[state.currentPlayerIndex].isAI).toBe(false);
     expect(state.turn).toBeGreaterThanOrEqual(2);
   });

@@ -13,7 +13,10 @@
     "test:coverage": "vitest run --coverage",
     "check:depcruise": "depcruise --config .dependency-cruiser.cjs src",
     "check:purity": "node scripts/check-purity.mjs",
-    "check": "npm run check:purity && npm run check:depcruise && npm run test:coverage"
+    "check:critical-paths": "node scripts/check-critical-paths.mjs",
+    "check:golden-replay": "vitest run tests/scenarios/golden-replay.spec.ts --reporter=verbose",
+    "compress-assets": "node scripts/compress-assets.mjs",
+    "check": "npm run check:purity && npm run check:depcruise && npm run check:critical-paths && npm run test:coverage && npm run check:golden-replay"
   },
   "dependencies": {
     "immer": "^10.1.1",
@@ -34,6 +37,7 @@
     "dependency-cruiser": "^16.3.0",
     "jsdom": "^29.1.1",
     "playwright": "^1.61.1",
+    "sharp": "^0.35.3",
     "typescript": "^5.5.4",
     "vite": "^5.4.0",
     "vitest": "^2.0.5"

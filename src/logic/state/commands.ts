@@ -3,7 +3,7 @@ import type { HexCoord } from '../../types';
 import type { GameState, GameEvent, PlayerState } from './types';
 import type { DistrictType, GovernmentId } from '../../gamedata';
 import { UNITS, BUILDINGS, WONDERS } from '../../gamedata';
-import { hexEquals, inBounds } from '../hex';
+import { hexEquals, hexDistance, inBounds } from '../hex';
 import { canBuildImprovement, buildImprovement } from './builder';
 import { canPlaceDistrict } from './district';
 import { canResearch } from './tech';
@@ -50,7 +50,11 @@ export type GameCommand =
   | { kind: 'purchaseMissionary'; cityId: string }
   | { kind: 'purchaseApostle'; cityId: string }
   | { kind: 'spreadReligion'; unitId: string; targetCityId: string }
-  | { kind: 'choosePromotion'; unitId: string; promotionId: string };
+  | { kind: 'choosePromotion'; unitId: string; promotionId: string }
+  | { kind: 'assignCitizen'; cityId: string; tile: HexCoord }
+  | { kind: 'unassignCitizen'; cityId: string; tile: HexCoord }
+  | { kind: 'reorderQueue'; cityId: string; fromIndex: number; toIndex: number }
+  | { kind: 'removeFromQueue'; cityId: string; index: number };
 
 // ---------- helpers（移至 query.ts，此处 re-export 保持兼容）----------
 export { findUnit, findCity, currentPlayer };
@@ -146,10 +150,7 @@ export function canExecute(state: GameState, cmd: GameCommand): RuleError | null
     case 'buyTile': {
       const c = findCity(state, cmd.cityId);
       if (!c || c.ownerId !== player.id) return { code: 'OWNER', message: '非当前玩家城市' };
-      if (!c.territory.some((t) => hexEquals(t, cmd.tile))) {
-        // 必须在城中心 3 格内
-        // (simplified: check adjacency to territory)
-      }
+      if (hexDistance(c.tile, cmd.tile) > 3) return { code: 'RANGE', message: '地块超出购买范围（3格）' };
       if (player.gold < buyTilePrice(c, cmd.tile)) return { code: 'GOLD', message: '金币不足' };
       return null;
     }
@@ -203,6 +204,32 @@ export function canExecute(state: GameState, cmd: GameCommand): RuleError | null
       if (!u || u.ownerId !== player.id) return { code: 'OWNER', message: '非当前玩家单位' };
       if (!canLevelUp(u)) return { code: 'CANT_LEVEL', message: '单位未达到升级条件' };
       if (!availablePromotions(u).includes(cmd.promotionId)) return { code: 'NO_PROMOTION', message: '该晋升不可用' };
+      return null;
+    }
+    case 'assignCitizen': {
+      const c = findCity(state, cmd.cityId);
+      if (!c || c.ownerId !== player.id) return { code: 'OWNER', message: '非当前玩家城市' };
+      if (c.workedTiles.length >= c.population) return { code: 'FULL', message: '已无可用市民' };
+      if (c.territory.some((t) => hexEquals(t, cmd.tile))) return null;
+      return { code: 'NOT_TERRITORY', message: '地块不在领土内' };
+    }
+    case 'unassignCitizen': {
+      const c = findCity(state, cmd.cityId);
+      if (!c || c.ownerId !== player.id) return { code: 'OWNER', message: '非当前玩家城市' };
+      if (!c.workedTiles.some((t) => hexEquals(t, cmd.tile))) return { code: 'NOT_WORKED', message: '该地块未工作' };
+      return null;
+    }
+    case 'reorderQueue': {
+      const c = findCity(state, cmd.cityId);
+      if (!c || c.ownerId !== player.id) return { code: 'OWNER', message: '非当前玩家城市' };
+      if (cmd.fromIndex < 0 || cmd.fromIndex >= c.queue.length) return { code: 'INVALID', message: '无效索引' };
+      if (cmd.toIndex < 0 || cmd.toIndex >= c.queue.length) return { code: 'INVALID', message: '无效索引' };
+      return null;
+    }
+    case 'removeFromQueue': {
+      const c = findCity(state, cmd.cityId);
+      if (!c || c.ownerId !== player.id) return { code: 'OWNER', message: '非当前玩家城市' };
+      if (cmd.index < 0 || cmd.index >= c.queue.length) return { code: 'INVALID', message: '无效索引' };
       return null;
     }
     case 'endTurn':
@@ -386,16 +413,40 @@ export function applyCommand(state: GameState, cmd: GameCommand): { state: GameS
       }
       break;
     }
+    case 'assignCitizen': {
+      const city = findCity(s, cmd.cityId);
+      if (city && !city.workedTiles.some((t) => hexEquals(t, cmd.tile))) {
+        city.workedTiles.push(cmd.tile);
+      }
+      break;
+    }
+    case 'unassignCitizen': {
+      const city = findCity(s, cmd.cityId);
+      if (city) {
+        city.workedTiles = city.workedTiles.filter((t) => !hexEquals(t, cmd.tile));
+      }
+      break;
+    }
+    case 'reorderQueue': {
+      const city = findCity(s, cmd.cityId);
+      if (city && cmd.fromIndex >= 0 && cmd.fromIndex < city.queue.length && cmd.toIndex >= 0 && cmd.toIndex < city.queue.length) {
+        const item = city.queue.splice(cmd.fromIndex, 1)[0];
+        city.queue.splice(cmd.toIndex, 0, item);
+      }
+      break;
+    }
+    case 'removeFromQueue': {
+      const city = findCity(s, cmd.cityId);
+      if (city && cmd.index >= 0 && cmd.index < city.queue.length) {
+        city.queue.splice(cmd.index, 1);
+      }
+      break;
+    }
     case 'endTurn': {
       const prev = s.currentPlayerIndex;
       const next = nextActivePlayer(s);
       if (next <= prev) {
-        const logLen = s.log.length;
-        resolveTurn(s);
-        // 收集 resolveTurn 中产生的日志事件（如 WonderBuilt/CityRebellion）
-        for (let i = logLen; i < s.log.length; i++) {
-          events.push(s.log[i]);
-        }
+        events.push(...resolveTurn(s));
         if (s.status === 'finished') {
           events.push({ kind: 'GameWon', turn: s.turn, payload: { victor: s.winner!, victoryType: s.victoryType! } });
         }
@@ -403,13 +454,6 @@ export function applyCommand(state: GameState, cmd: GameCommand): { state: GameS
       s.currentPlayerIndex = next;
       break;
     }
-  }
-  if (events.length > 0) {
-    s.log.push(...events);
-  }
-  const MAX_LOG_SIZE = 1000;
-  if (s.log.length > MAX_LOG_SIZE) {
-    s.log = s.log.slice(s.log.length - MAX_LOG_SIZE);
   }
   return { state: s, events };
 }

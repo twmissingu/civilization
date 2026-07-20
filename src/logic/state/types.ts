@@ -140,6 +140,5 @@ export interface GameState {
   diplomacy: Record<string, Record<string, DiplomacyState>>; // [a][b]
   unitIdCounter: number;
   cityIdCounter: number;
-  log: GameEvent[];
   cityStates: CityStateInstance[]; // 城邦实例
 }

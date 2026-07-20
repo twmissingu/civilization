@@ -1,5 +1,5 @@
 // 回合结算（确定性）
-import type { GameState } from './types';
+import type { GameState, GameEvent } from './types';
 import { UNITS, TECHS, CIVICS } from '../../gamedata';
 import { settleCity } from './city';
 import { advanceResearch, computeEra } from './tech';
@@ -10,14 +10,17 @@ import { processTradeRoutes } from './traderoute';
 import { computePassiveReligiousPressure } from './religion';
 import { techCost } from '../../gamedata';
 
-export function resolveTurn(state: GameState): void {
+export function resolveTurn(state: GameState): GameEvent[] {
+  const events: GameEvent[] = [];
   state.turn += 1;
   // 处理贸易路线（在所有玩家产出结算前，先处理路线完成和金币产出）
   processTradeRoutes(state);
   // 处理被动宗教压力
   computePassiveReligiousPressure(state);
   for (const player of state.players) {
-    for (const city of player.cities) settleCity(state, city);
+    for (const city of player.cities) {
+      events.push(...settleCity(state, city));
+    }
     const y = playerYield(state, player);
     // 苏格拉底之问（希腊）：文化 +10%
     const science = player.civId === 'china' ? Math.round(y.science * 1.1) : y.science;
@@ -54,7 +57,7 @@ export function resolveTurn(state: GameState): void {
       if (c.amenities < 0 && c.population > 1) {
         c.food = 0;
         c.population -= 1;
-        state.log.push({ kind: 'CityRebellion', turn: state.turn, payload: { cityId: c.id, ownerId: player.id, population: c.population } });
+        events.push({ kind: 'CityRebellion', turn: state.turn, payload: { cityId: c.id, ownerId: player.id, population: c.population } });
       }
     }
   }
@@ -64,4 +67,5 @@ export function resolveTurn(state: GameState): void {
     state.winner = v.winnerId;
     state.victoryType = v.type;
   }
+  return events;
 }

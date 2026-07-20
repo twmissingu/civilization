@@ -2,7 +2,7 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { theme } from './theme';
-import { YIELD_LABELS } from '../logic/state/describe';
+import { YIELD_LABELS } from '../logic/state/query';
 
 interface TooltipProps {
   children: React.ReactNode;

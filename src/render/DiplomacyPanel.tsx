@@ -1,8 +1,7 @@
-// 外交面板
-import { useGame } from './store';
-import { currentPlayer } from '../logic/state/commands';
+// 外交面板（增强版）
+import { useGame, useCurrentPlayer, useAllPlayers } from './store';
 import { CIVILIZATIONS } from '../gamedata';
-import { playerScore } from '../logic/state/victory';
+import { getPlayerScore } from '../logic/state/query';
 import { portraitAssetUrl } from './assets';
 import { theme } from './theme';
 import { panelStyle, btnStyle } from './uiStyles';
@@ -14,18 +13,23 @@ interface DiplomacyPanelProps {
 export function DiplomacyPanel({ onRequestWar }: DiplomacyPanelProps) {
   const state = useGame((s) => s.state);
   const command = useGame((s) => s.command);
-  const player = currentPlayer(state);
+  const player = useCurrentPlayer();
+  const allPlayers = useAllPlayers();
+  const playerScoreVal = getPlayerScore(state, player.id);
 
   return (
     <div style={{ marginBottom: theme.spacing.md }}>
       <b>外交</b>
-      {state.players
+      {allPlayers
         .filter((p) => p.id !== player.id)
         .map((opponent) => {
           const oppCiv = CIVILIZATIONS[opponent.civId];
           const atWar = state.diplomacy[player.id]?.[opponent.id] === 'war';
+          const oppScore = getPlayerScore(state, opponent.id);
+          const scoreDiff = playerScoreVal - oppScore;
+
           return (
-            <div key={opponent.id} style={{ ...panelStyle, background: atWar ? '#3a1a1a' : '#1a2a1e', padding: 6 }}>
+            <div key={opponent.id} style={{ ...panelStyle, background: atWar ? '#3a1a1a' : '#1a2a1e', padding: 6, marginTop: 4 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                 <img
                   src={portraitAssetUrl(opponent.civId)}
@@ -34,10 +38,20 @@ export function DiplomacyPanel({ onRequestWar }: DiplomacyPanelProps) {
                   height={36}
                   style={{ borderRadius: 3, border: `1px solid ${theme.colors.accent}`, objectFit: 'cover' }}
                 />
-                <div>
-                  <div>{oppCiv?.name} {atWar ? '战争' : '和平'}</div>
+                <div style={{ flex: 1 }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                    <span>{oppCiv?.name}</span>
+                    <span style={{ fontSize: 10, color: atWar ? theme.colors.danger : theme.colors.textMuted }}>
+                      {atWar ? '⚔ 战争' : '☮ 和平'}
+                    </span>
+                  </div>
                   <div style={{ fontSize: 10, color: theme.colors.textDim }}>
-                    分数 {playerScore(opponent)} · 城 {opponent.cities.length} · 单位 {opponent.units.length}
+                    分数 {oppScore} · 城 {opponent.cities.length} · 单位 {opponent.units.length}
+                    {scoreDiff > 0 && <span style={{ color: theme.colors.gold, marginLeft: 4 }}>领 +{scoreDiff}</span>}
+                    {scoreDiff < 0 && <span style={{ color: theme.colors.danger, marginLeft: 4 }}>落后 {Math.abs(scoreDiff)}</span>}
+                  </div>
+                  <div style={{ fontSize: 10, color: theme.colors.textDim }}>
+                    科技 {opponent.researchedTechs.length} · 市政 {opponent.researchedCivics.length}
                   </div>
                 </div>
               </div>

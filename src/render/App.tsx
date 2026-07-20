@@ -1,6 +1,7 @@
 // 主界面：资源条 + 地图 + 侧栏
+// 分片订阅：不订阅整 state，只订阅需要的最小字段
 import { useState, useRef, useCallback } from 'react';
-import { useGame } from './store';
+import { useGame, usePlayerUnits, usePlayerCities } from './store';
 import { PixiMap } from './PixiMap';
 import { TopBar } from './TopBar';
 import { Sidebar } from './Sidebar';
@@ -9,49 +10,31 @@ import { EventLogOverlay } from './EventLogOverlay';
 import { HelpModal } from './HelpModal';
 import { ConfirmDialogManager, type PendingConfirm } from './ConfirmDialogManager';
 import { Minimap } from './Minimap';
+import { AIProgressOverlay } from './AIProgressOverlay';
 import { useKeyboardShortcuts } from './useKeyboardShortcuts';
-import { currentPlayer } from '../logic/state/commands';
-import { playerYield } from '../logic/state/yield';
-import { CIVILIZATIONS } from '../gamedata';
 import { formatEvent } from './eventLog';
 import { theme } from './theme';
 import './styles.css';
-import type { PlayerState } from '../logic/state/types';
-
-function computeTodoCount(player: PlayerState): number {
-  let count = 0;
-  for (const u of player.units) if (u.moveLeft > 0 && !u.hasActed) count++;
-  for (const c of player.cities) if (c.queue.length === 0) count++;
-  return count;
-}
 
 export function App() {
-  const {
-    state,
-    selectedUnitId,
-    selectedCityId,
-    endTurn,
-    newGame,
-    save,
-    load,
-    message,
-    eventLog,
-    selectUnit,
-    selectCity,
-  } = useGame();
+  const selectedUnitId = useGame((s) => s.selectedUnitId);
+  const selectedCityId = useGame((s) => s.selectedCityId);
+  const endTurn = useGame((s) => s.endTurn);
+  const message = useGame((s) => s.message);
+  const eventLog = useGame((s) => s.eventLog);
+  const selectUnit = useGame((s) => s.selectUnit);
+  const selectCity = useGame((s) => s.selectCity);
+  // 分片订阅：只订阅当前玩家单位和城市列表，不订阅整 state
+  const playerUnits = usePlayerUnits();
+  const playerCities = usePlayerCities();
   const [showHelp, setShowHelp] = useState(false);
   const [pendingConfirm, setPendingConfirm] = useState<PendingConfirm | null>(null);
   const researchRef = useRef<HTMLDivElement>(null);
   const civicRef = useRef<HTMLDivElement>(null);
 
-  const player = currentPlayer(state);
-  const y = playerYield(state, player);
-  const civ = CIVILIZATIONS[player.civId];
-  const todoCount = computeTodoCount(player);
-
   const cycleUnitOrCity = useCallback((direction: 1 | -1) => {
-    const ownUnits = player.units.filter((u) => u.moveLeft > 0 && !u.hasActed);
-    const ownCities = player.cities.filter((c) => c.queue.length === 0);
+    const ownUnits = playerUnits.filter((u) => u.moveLeft > 0 && !u.hasActed);
+    const ownCities = playerCities.filter((c) => c.queue.length === 0);
     const targets: { kind: 'unit' | 'city'; id: string }[] = [
       ...ownUnits.map((u) => ({ kind: 'unit' as const, id: u.id })),
       ...ownCities.map((c) => ({ kind: 'city' as const, id: c.id })),
@@ -64,7 +47,7 @@ export function App() {
     const target = targets[idx];
     if (target.kind === 'unit') selectUnit(target.id);
     else selectCity(target.id);
-  }, [player.cities, player.units, selectedCityId, selectedUnitId, selectCity, selectUnit]);
+  }, [playerUnits, playerCities, selectedCityId, selectedUnitId, selectCity, selectUnit]);
 
   useKeyboardShortcuts({
     endTurn,
@@ -90,24 +73,11 @@ export function App() {
       <div aria-live="polite" aria-atomic="true" className="sr-only">
         {[
           message,
-          eventLog.length > 0 ? `最新事件：${formatEvent(state, eventLog[eventLog.length - 1])}` : '',
-          todoCount > 0 ? `${todoCount} 项待办` : '',
+          eventLog.length > 0 ? `最新事件：${formatEvent(useGame.getState().state, eventLog[eventLog.length - 1])}` : '',
         ].filter(Boolean).join('；')}
       </div>
 
-      <TopBar
-        civName={civ?.name ?? player.civId}
-        turn={state.turn}
-        player={player}
-        yieldTotal={y}
-        message={message}
-        onEndTurn={endTurn}
-        onSave={save}
-        onLoad={load}
-        onNewGame={newGame}
-        onShowHelp={() => setShowHelp(true)}
-        todoCount={todoCount}
-      />
+      <TopBar onShowHelp={() => setShowHelp(true)} />
 
       <VictoryBanner />
       <EventLogOverlay />
@@ -133,6 +103,7 @@ export function App() {
 
       <ConfirmDialogManager pendingConfirm={pendingConfirm} onClose={() => setPendingConfirm(null)} />
       <HelpModal isOpen={showHelp} onClose={() => setShowHelp(false)} />
+      <AIProgressOverlay />
     </div>
   );
 }

@@ -1,8 +1,8 @@
 // 市政面板
 import { forwardRef } from 'react';
 import { useGame } from './store';
-import { currentPlayer } from '../logic/state/commands';
-import { canResearchCivic } from '../logic/state/civic';
+import { currentPlayer } from '../logic/state/query';
+import { canPlayerResearchCivic } from '../logic/state/query';
 import { CIVICS } from '../gamedata';
 import { CivicTooltip } from './Tooltip';
 import { ExpandableList } from './ExpandableList';
@@ -16,7 +16,7 @@ export const CivicsPanel = forwardRef<HTMLDivElement>(function CivicsPanel(_, re
   const command = useGame((s) => s.command);
   const player = currentPlayer(state);
   const current = player.currentCivic;
-  const availableCivics = Object.values(CIVICS).filter((c) => canResearchCivic(player, c.id));
+  const availableCivics = Object.values(CIVICS).filter((c) => canPlayerResearchCivic(state, c.id));
 
   const civicProgress = current
     ? `${current.progress}/${CIVICS[current.civicId]?.cost} · ${formatTurns(

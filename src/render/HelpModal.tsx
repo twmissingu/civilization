@@ -1,7 +1,7 @@
 // 帮助模态框：规则、快速入门、图例、操作说明、胜利条件、术语表、提示
 import { useState, useEffect, useRef } from 'react';
 import { TERRAINS, FEATURES, RESOURCES } from '../gamedata';
-import { terrainLabel, featureLabel, resourceLabel, RESOURCE_CATEGORY_LABELS } from '../logic/state/describe';
+import { terrainLabel, featureLabel, resourceLabel, RESOURCE_CATEGORY_LABELS } from '../logic/state/query';
 import { theme } from './theme';
 
 interface HelpModalProps {

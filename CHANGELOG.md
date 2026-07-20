@@ -5,6 +5,61 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [0.4.0] - 2026-07-20
+
+### Added
+
+#### 性能与架构基线
+- 统一 query API：所有渲染层通过 `query.ts` 访问逻辑层，禁用 `commands.ts` 直接导入
+- 分片订阅：新增 `useCurrentPlayer`/`usePlayerUnits`/`usePlayerCities` 等 hooks
+- PixiMap 脏标记优化：`mapVersion` 计数器避免不必要的重绘
+- 镜头平滑插值：requestAnimationFrame lerp 动画
+
+#### 视觉反馈
+- 迷雾遮罩：`revealArea` + `updatePlayerVisibility`，初始只露出玩家单位周围
+- 河流渲染：地图生成连续河流 + 蓝色河流线 overlay
+- 城市名称标签：城市名称显示在 PixiMap 城市圆点下方
+- SVG 手绘风格产出图标：`<YieldIcon>` 组件替代旧 emoji
+
+#### 城市操作闭环
+- 区域放置入口：列出可用区域，点击加入生产队列
+- 金币买地入口：显示可购买地块及价格
+- 生产队列管理：上移/下移/删除按钮
+- 市民分配入口：显示已工作/可工作地块，点击分配/取消
+
+#### Phase 2 系统 UI 入口
+- 宗教面板：万神殿/宗教/信仰/宗教单位
+- 城邦面板：使者/宗主国状态
+- 大人物面板：伟人点数/已招募
+- 贸易路线面板：活跃路线/产出
+- 胜利进度面板：5 种胜利条件进度条
+
+#### 小地图增强
+- 迷雾渲染：未探索/已探索区域不同灰度
+- 单位显示：绿点(己方)/红点(敌方)
+- 视口矩形：白色边框随镜头实时更新
+- 精确点击跳转：点击坐标使用 hex 算法
+
+#### 质量门禁
+- critical-paths.yaml：16 条关键路径定义 + 门禁脚本
+- golden replay 测试：4 个 round-trip 确定性测试
+- `npm run check` 集成：critical-paths + golden-replay
+
+### Changed
+- 公共 API 统一：`currentPlayer`/`findUnit`/`findCity` 从 `query.ts` 导出
+- 外交面板增强：分数对比、科技/市政数量显示
+- 政体面板：政策卡效果 tooltip + 政体加成显示
+- CityPanel 重构：提取 7 个独立子组件，类型安全
+
+### Fixed
+- `buyTile` 命令添加 `hexDistance <= 3` 范围校验
+- 资产压缩脚本移除冗余 `copyFileSync`，添加 `.tmp` 清理
+
+### Infrastructure
+- `scripts/compress-assets.mjs`：PNG 压缩 + WebP 生成管线
+- `scripts/check-critical-paths.mjs`：关键路径门禁检查
+- 生产构建资产：177MB → 0.5MB（99.5% 缩减）
+
 ## [0.3.0] - 2026-07-17
 
 ### Added

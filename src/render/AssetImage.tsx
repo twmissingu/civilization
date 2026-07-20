@@ -1,4 +1,4 @@
-// 带加载/失败状态的图片组件 + 全局缓存
+// 带加载/失败状态的图片组件 + 全局缓存 + WebP 优先
 import { useState, useEffect, useRef } from 'react';
 
 interface AssetImageProps {
@@ -11,11 +11,20 @@ interface AssetImageProps {
 
 const imageCache = new Map<string, HTMLImageElement>();
 
+function webpSrc(src: string): string {
+  // 尝试加载 .webp 版本，fallback 到原文件
+  if (src.endsWith('.png')) {
+    return src.replace(/\.png$/, '.webp');
+  }
+  return src;
+}
+
 export function AssetImage({ src, alt = '', width = 16, height = 16, style }: AssetImageProps) {
   const [state, setState] = useState<'loading' | 'loaded' | 'failed'>(
     imageCache.has(src) ? 'loaded' : 'loading'
   );
   const mountedRef = useRef(true);
+  const webp = webpSrc(src);
 
   useEffect(() => {
     mountedRef.current = true;
@@ -30,11 +39,16 @@ export function AssetImage({ src, alt = '', width = 16, height = 16, style }: As
       if (mountedRef.current) setState('loaded');
     };
     img.onerror = () => {
+      // WebP 加载失败，fallback 到 PNG
+      if (img.src !== src) {
+        img.src = src;
+        return;
+      }
       if (mountedRef.current) setState('failed');
     };
-    img.src = src;
+    img.src = webp;
     return () => { mountedRef.current = false; };
-  }, [src]);
+  }, [src, webp]);
 
   if (state === 'failed') {
     return (
