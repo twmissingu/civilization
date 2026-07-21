@@ -13,7 +13,11 @@ import { getTile } from './state/mapgen';
 import { hexDistance, hexNeighbors, inBounds } from './hex';
 import { canStartTradeRoute } from './state/traderoute';
 import { canFoundReligion, canPurchaseMissionary } from './state/religion';
-import { PANTHEONS } from '../gamedata';
+import { PANTHEONS, BUILDINGS, GOVERNMENTS, POLICY_CARDS } from '../gamedata';
+import type { DistrictType } from '../gamedata';
+import { canPlaceDistrict } from './state/district';
+import { canChangeGovernment, canSwitchPolicy } from './state/civic';
+import { hexEquals } from './hex';
 
 function playerIdx(id: string): number {
   const m = id.match(/(\d+)$/);
@@ -218,6 +222,73 @@ function aiUnitActions(state: GameState, player: PlayerState, rng: ReturnType<ty
   return commands;
 }
 
+/** AI 区域放置：按城市需求选区域类型，在领地内找合法格子 */
+function aiPlaceDistricts(state: GameState, player: PlayerState): GameCommand[] {
+  const commands: GameCommand[] = [];
+  const districtPriority: DistrictType[] = ['campus', 'holy', 'commercial', 'industrial', 'encampment', 'theater', 'harbor'];
+  for (const city of player.cities) {
+    const maxDistricts = Math.floor(city.population / 3) + 1;
+    if (city.districts.length >= maxDistricts) continue;
+    // 选一个尚未放置的区域类型
+    for (const dType of districtPriority) {
+      if (city.districts.some((d) => d.type === dType)) continue;
+      // 找合法格子（领土内非城中心非已有区域）
+      const tile = city.territory.find((t) =>
+        !hexEquals(t, city.tile) && !city.districts.some((dd) => hexEquals(dd.tile, t)) && canPlaceDistrict(state, city, dType, t)
+      );
+      if (tile) {
+        commands.push({ kind: 'placeDistrict', cityId: city.id, districtType: dType, tile });
+        break;
+      }
+    }
+  }
+  return commands;
+}
+
+/** AI 建筑建造：已有区域的城市补充建筑 */
+function aiBuildBuildings(_state: GameState, player: PlayerState): GameCommand[] {
+  const commands: GameCommand[] = [];
+  for (const city of player.cities) {
+    if (city.queue.length > 0) continue;
+    // 找第一个可建造的城区建筑
+    for (const b of Object.values(BUILDINGS)) {
+      if (city.buildings.includes(b.id)) continue;
+      if (b.unlockTech && !player.researchedTechs.includes(b.unlockTech)) continue;
+      if (b.unlockCivic && !player.researchedCivics.includes(b.unlockCivic)) continue;
+      // 建筑属于已有区域或城市中心
+      if (b.district === 'city_center' || city.districts.some((d) => d.type === b.district)) {
+        commands.push({ kind: 'buildBuilding', cityId: city.id, buildingType: b.id });
+        break;
+      }
+    }
+  }
+  return commands;
+}
+
+/** AI 政体/政策卡切换：解锁新市政后有概率切换 */
+function aiChangeGovernment(_state: GameState, player: PlayerState): GameCommand[] {
+  const commands: GameCommand[] = [];
+  // 检查是否有可切换的政体
+  for (const g of Object.values(GOVERNMENTS)) {
+    if (g.id === player.government) continue;
+    if (canChangeGovernment(player, g.id)) {
+      commands.push({ kind: 'changeGovernment', governmentType: g.id });
+      // 装填政策卡：找第一个空槽装可用卡
+      for (let i = 0; i < player.policySlots.length; i++) {
+        if (player.policySlots[i] !== null) continue;
+        for (const c of Object.values(POLICY_CARDS)) {
+          if (player.researchedCivics.includes(c.unlockCivic) && canSwitchPolicy(player, c.id, i)) {
+            commands.push({ kind: 'switchPolicy', cardId: c.id, slotIndex: i });
+            break;
+          }
+        }
+      }
+      break;
+    }
+  }
+  return commands;
+}
+
 export function aiDecide(state: GameState, player: PlayerState): GameCommand[] {
   const commands: GameCommand[] = [];
   const rng = createRng(hash(state.seed, state.turn, playerIdx(player.id)));
@@ -236,6 +307,9 @@ export function aiDecide(state: GameState, player: PlayerState): GameCommand[] {
   commands.push(...aiResearch(state, player, rng));
   commands.push(...aiReligion(state, player, rng));
   commands.push(...aiCityProduction(state, player, isHard));
+  commands.push(...aiPlaceDistricts(state, player));
+  commands.push(...aiBuildBuildings(state, player));
+  commands.push(...aiChangeGovernment(state, player));
   commands.push(...aiUnitActions(state, player, rng, skipChance));
 
   commands.push({ kind: 'endTurn' });

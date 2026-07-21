@@ -11,6 +11,7 @@ import { HelpModal } from './HelpModal';
 import { ConfirmDialogManager, type PendingConfirm } from './ConfirmDialogManager';
 import { Minimap } from './Minimap';
 import { AIProgressOverlay } from './AIProgressOverlay';
+import { TutorialOverlay } from './TutorialOverlay';
 import { useKeyboardShortcuts } from './useKeyboardShortcuts';
 import { formatEvent } from './eventLog';
 import { theme } from './theme';
@@ -104,6 +105,7 @@ export function App() {
       <ConfirmDialogManager pendingConfirm={pendingConfirm} onClose={() => setPendingConfirm(null)} />
       <HelpModal isOpen={showHelp} onClose={() => setShowHelp(false)} />
       <AIProgressOverlay />
+      <TutorialOverlay />
     </div>
   );
 }

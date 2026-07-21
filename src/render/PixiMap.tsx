@@ -110,6 +110,9 @@ export function PixiMap({ onRequestAttack }: PixiMapProps = {}) {
   // 选中单位脉冲动画
   const pulseRef = useRef(0);
   const selectedRingRef = useRef<Graphics | null>(null);
+  // 增量渲染：cameraContainer 整体平移，避免每帧全量 draw()
+  const cameraContainerRef = useRef<Container | null>(null);
+  const lastDrawVersionRef = useRef<number>(-1);
 
   useEffect(() => {
     let destroyed = false;
@@ -125,29 +128,34 @@ export function PixiMap({ onRequestAttack }: PixiMapProps = {}) {
         }
         setStatus('就绪');
         // 镜头平滑动画：每帧插值 currentCam → targetCam
+        // 优化：动画期间仅平移 cameraContainer，不调用全量 draw()
         app.ticker.add(() => {
-          if (!animatingRef.current || !currentCamRef.current || !targetCamRef.current) return;
-          const cur = currentCamRef.current;
-          const tgt = targetCamRef.current;
-          const dx = tgt.x - cur.x;
-          const dy = tgt.y - cur.y;
-          const dist = Math.sqrt(dx * dx + dy * dy);
-          if (dist < 0.5) {
-            cur.x = tgt.x;
-            cur.y = tgt.y;
-            animatingRef.current = false;
-          } else {
-            cur.x += dx * 0.12;
-            cur.y += dy * 0.12;
+          if (animatingRef.current && currentCamRef.current && targetCamRef.current) {
+            const cur = currentCamRef.current;
+            const tgt = targetCamRef.current;
+            const dx = tgt.x - cur.x;
+            const dy = tgt.y - cur.y;
+            const dist = Math.sqrt(dx * dx + dy * dy);
+            if (dist < 0.5) {
+              cur.x = tgt.x;
+              cur.y = tgt.y;
+              animatingRef.current = false;
+            } else {
+              cur.x += dx * 0.12;
+              cur.y += dy * 0.12;
+            }
+            // 仅平移 cameraContainer，不重建 Graphics
+            if (cameraContainerRef.current) {
+              cameraContainerRef.current.x = cur.x;
+              cameraContainerRef.current.y = cur.y;
+            }
           }
-          draw();
-        });
-        // 选中单位脉冲动画
-        app.ticker.add(() => {
+          // 选中单位脉冲动画
           pulseRef.current = (pulseRef.current + 0.04) % (Math.PI * 2);
-          if (selectedRingRef.current) {
-            const alpha = 0.5 + Math.sin(pulseRef.current) * 0.4;
-            selectedRingRef.current.alpha = alpha;
+          if (selectedRingRef.current && selectedRingRef.current.visible) {
+            selectedRingRef.current.alpha = 0.5 + Math.sin(pulseRef.current) * 0.4;
+          } else {
+            pulseRef.current = 0;
           }
         });
         draw();
@@ -224,25 +232,30 @@ export function PixiMap({ onRequestAttack }: PixiMapProps = {}) {
   }
 
   function ensureLayers(app: Application) {
+    if (!cameraContainerRef.current) {
+      cameraContainerRef.current = new Container();
+      app.stage.addChild(cameraContainerRef.current);
+    }
+    const cc = cameraContainerRef.current;
     if (!terrainLayerRef.current) {
       terrainLayerRef.current = new Container();
-      app.stage.addChild(terrainLayerRef.current);
+      cc.addChild(terrainLayerRef.current);
     }
     if (!riverLayerRef.current) {
       riverLayerRef.current = new Container();
-      app.stage.addChild(riverLayerRef.current);
+      cc.addChild(riverLayerRef.current);
     }
     if (!dynamicLayerRef.current) {
       dynamicLayerRef.current = new Container();
-      app.stage.addChild(dynamicLayerRef.current);
+      cc.addChild(dynamicLayerRef.current);
     }
     if (!districtsLayerRef.current) {
       districtsLayerRef.current = new Container();
-      app.stage.addChild(districtsLayerRef.current);
+      cc.addChild(districtsLayerRef.current);
     }
     if (!fogLayerRef.current) {
       fogLayerRef.current = new Container();
-      app.stage.addChild(fogLayerRef.current);
+      cc.addChild(fogLayerRef.current);
     }
     if (!tooltipRef.current) {
       const tt = new Text({
@@ -704,6 +717,14 @@ export function PixiMap({ onRequestAttack }: PixiMapProps = {}) {
         currentCamRef.current.x = targetCam.x;
         currentCamRef.current.y = targetCam.y;
       }
+      // 增量渲染：如果地图内容未变，仅更新 cameraContainer 位置，跳过全量重建
+      if (mapVersion === lastDrawVersionRef.current && cameraContainerRef.current) {
+        cameraContainerRef.current.x = cam.x;
+        cameraContainerRef.current.y = cam.y;
+        return;
+      }
+      lastDrawVersionRef.current = mapVersion;
+
       const selectedUnit = selectedUnitId ? findUnit(state, selectedUnitId) : null;
       const vb = viewportHexBounds(cam, app.screen.width, app.screen.height, state.map.bounds, DISP, 2);
 
@@ -714,11 +735,18 @@ export function PixiMap({ onRequestAttack }: PixiMapProps = {}) {
       const riverUsed = new Set<string>();
       const terrainLayer = terrainLayerRef.current!;
 
+      // 设置 cameraContainer 位置，所有子 layer 坐标相对于容器
+      if (cameraContainerRef.current) {
+        cameraContainerRef.current.x = cam.x;
+        cameraContainerRef.current.y = cam.y;
+      }
+      const zeroCam = { x: 0, y: 0 }; // 所有子 layer 以 (0,0) 为基准，由容器平移
+
       for (const t of state.map.tiles) {
         if (t.coord.q < vb.minQ || t.coord.q > vb.maxQ || t.coord.r < vb.minR || t.coord.r > vb.maxR) continue;
         const p = hexToPixel(t.coord, DISP);
-        const cx = p.x + DISP + cam.x;
-        const cy = p.y + DISP + cam.y;
+        const cx = p.x + DISP;
+        const cy = p.y + DISP;
         ensureTerrainSprite(t, cx, cy, terrainLayer);
         terrainUsed.add(tileKey(t.coord));
       }
@@ -726,22 +754,22 @@ export function PixiMap({ onRequestAttack }: PixiMapProps = {}) {
         if (!terrainUsed.has(key)) sprite.visible = false;
       }
 
-      renderDynamicLayer(cam, vb, player, selectedUnit ?? null, dynamicUsed);
+      renderDynamicLayer(zeroCam, vb, player, selectedUnit ?? null, dynamicUsed);
       for (const [key, obj] of dynamicPoolRef.current) {
         if (!dynamicUsed.has(key)) obj.visible = false;
       }
 
-      renderDistrictsLayer(cam, vb, districtUsed);
+      renderDistrictsLayer(zeroCam, vb, districtUsed);
       for (const [key, sprite] of districtPoolRef.current) {
         if (!districtUsed.has(key)) sprite.visible = false;
       }
 
-      renderRiverLayer(cam, vb, riverUsed);
+      renderRiverLayer(zeroCam, vb, riverUsed);
       for (const [key, g] of riverPoolRef.current) {
         if (!riverUsed.has(key)) { g.visible = false; g.clear(); }
       }
 
-      renderFogLayer(cam, vb, fogUsed);
+      renderFogLayer(zeroCam, vb, fogUsed);
       for (const [key, g] of fogPoolRef.current) {
         if (!fogUsed.has(key)) { g.visible = false; g.clear(); }
       }
