@@ -46,6 +46,8 @@ export function resolveTurn(state: GameState): GameEvent[] {
     player.totalCultureGenerated += y.culture;
     const maintenance = player.units.reduce((a, u) => a + (UNITS[u.type]?.maintenance ?? 0), 0);
     player.gold -= maintenance;
+    // 每 10 回合获得 1 使者
+    if (state.turn % 10 === 0) player.storedEnvoys += 1;
     for (const u of player.units) {
       u.moveLeft = UNITS[u.type]?.move ?? 2;
       u.hasActed = false;

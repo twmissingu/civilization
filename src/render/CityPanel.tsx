@@ -1,5 +1,6 @@
 // 选中城市面板——渐进增强版
-// 功能：区域放置、金币买地、队列管理(上下移/删除)、市民分配
+// 功能：区域放置、金币买地、队列管理(上下移/删除)、市民分配、全屏模式
+import { useState } from 'react';
 import { useGame, useCurrentPlayer } from './store';
 import { findCity, getCityYield, getProductionCost, getBuyTilePrice } from '../logic/state/query';
 import { DISTRICTS, UNITS, BUILDINGS, WONDERS, CIVILIZATIONS } from '../gamedata';
@@ -18,12 +19,20 @@ import { YieldValue } from './YieldIcon';
 interface CitySubProps { city: CityState; command: (cmd: GameCommand) => void; }
 interface CityPlayerSubProps extends CitySubProps { player: PlayerState; }
 
+const miniBtn: React.CSSProperties = {
+  padding: '1px 4px', border: 'none', color: '#fff', cursor: 'pointer',
+  borderRadius: 4, fontSize: 12, fontFamily: 'monospace',
+  background: '#555', margin: '1px',
+};
+
 export function CityPanel() {
+  const [fullscreen, setFullscreen] = useState(false);
   const players = useGame((s) => s.state.players);
   const map = useGame((s) => s.state.map);
   const config = useGame((s) => s.state.config);
   const state = { players, map, config } as unknown as GameState;
   const command = useGame((s) => s.command);
+  const selectCity = useGame((s) => s.selectCity);
   const selectedCityId = useGame((s) => s.selectedCityId);
   const player = useCurrentPlayer();
   const city = selectedCityId ? findCity(state, selectedCityId) : null;
@@ -44,9 +53,24 @@ export function CityPanel() {
 
   const cy = getCityYield(state, city.id);
 
-  return (
-    <div style={panelStyle}>
-      <b>{city.name}</b> (人口 {city.population})
+  const cityContent = (
+    <>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
+        <b style={{ fontSize: fullscreen ? 16 : 13 }}>{city.name}</b>
+        <span style={{ fontSize: 11, color: theme.colors.textMuted }}>(人口 {city.population})</span>
+        <div style={{ marginLeft: 'auto', display: 'flex', gap: 4 }}>
+          {/* 全屏模式下切城按钮 */}
+          {fullscreen && (
+            <>
+              <button style={miniBtn} onClick={() => { const idx = player.cities.findIndex((c) => c.id === city.id); if (idx > 0) selectCity(player.cities[idx - 1].id); }}>◀</button>
+              <button style={miniBtn} onClick={() => { const idx = player.cities.findIndex((c) => c.id === city.id); if (idx < player.cities.length - 1) selectCity(player.cities[idx + 1].id); }}>▶</button>
+            </>
+          )}
+          <button style={{ ...miniBtn, background: theme.colors.accent }} onClick={() => setFullscreen(!fullscreen)} title={fullscreen ? '收起' : '全屏'}>
+            {fullscreen ? '✕' : '⛶'}
+          </button>
+        </div>
+      </div>
       <div style={{ fontSize: 11, color: theme.colors.textMuted, marginBottom: 4 }}>
         领土 {city.territory.length} · 住房 {city.housing} · 人口增长 {formatTurns(turnsToPopulationGrowth(state, city))}
       </div>
@@ -79,6 +103,35 @@ export function CityPanel() {
 
       {/* 市民分配 */}
       <CitizenSection city={city} command={command} />
+    </>
+  );
+
+  if (fullscreen) {
+    return (
+      <div style={{
+        position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+        background: 'rgba(0,0,0,0.85)', zIndex: 1000,
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        fontFamily: theme.fontFamily,
+      }} onClick={() => setFullscreen(false)}>
+        <div style={{
+          background: theme.colors.bgPanel, padding: 24, borderRadius: theme.borderRadius,
+          maxWidth: 600, maxHeight: '85vh', overflowY: 'auto',
+          border: `1px solid ${theme.colors.border}`, width: '90%',
+        }} onClick={(e) => e.stopPropagation()}>
+          {cityContent}
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div style={panelStyle}>
+      {cityContent}
+      <button style={{ ...btnStyle, marginTop: 4, fontSize: 10, background: theme.colors.accent, width: '100%' }}
+        onClick={() => setFullscreen(true)}>
+        全屏查看
+      </button>
     </div>
   );
 }
@@ -279,10 +332,4 @@ function CitizenSection({ city, command }: CitySubProps) {
     </>
   );
 }
-
-const miniBtn: React.CSSProperties = {
-  padding: '1px 4px', border: 'none', color: '#fff', cursor: 'pointer',
-  borderRadius: theme.borderRadius, fontSize: 12, fontFamily: theme.fontFamily,
-  background: theme.colors.disabled, margin: '1px',
-};
 

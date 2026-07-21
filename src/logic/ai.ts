@@ -13,6 +13,7 @@ import { getTile } from './state/mapgen';
 import { hexDistance, hexNeighbors, inBounds } from './hex';
 import { canStartTradeRoute } from './state/traderoute';
 import { canFoundReligion, canPurchaseMissionary } from './state/religion';
+import { canSendEnvoy } from './state/citystate';
 import { PANTHEONS, BUILDINGS, GOVERNMENTS, POLICY_CARDS } from '../gamedata';
 import type { DistrictType } from '../gamedata';
 import { canPlaceDistrict } from './state/district';
@@ -289,6 +290,33 @@ function aiChangeGovernment(_state: GameState, player: PlayerState): GameCommand
   return commands;
 }
 
+/** AI 城邦使者分配：按策略选择收益最高的城邦派遣使者 */
+function aiSendEnvoys(state: GameState, player: PlayerState): GameCommand[] {
+  const commands: GameCommand[] = [];
+  const aliveCS = state.cityStates.filter((cs) => cs.isAlive);
+  if (aliveCS.length === 0 || player.storedEnvoys <= 0) return commands;
+
+  // 简单策略：优先投给当前未宗主、且玩家使者数最少的城邦
+  const scored = aliveCS.map((cs) => {
+    const myEnvoys = cs.envoys[player.id] ?? 0;
+    const isSuzerain = cs.suzerainId === player.id;
+    // 分数：越接近宗主国但尚未宗主 > 已有使者跟进 > 全新
+    const score = isSuzerain ? 0 : (3 - myEnvoys); // 使者越少分数越高
+    return { id: cs.id, score };
+  }).sort((a, b) => b.score - a.score);
+
+  for (const cs of scored) {
+    if (player.storedEnvoys <= 0) break;
+    if (cs.score <= 0) continue;
+    if (canSendEnvoy(state, player, cs.id)) {
+      commands.push({ kind: 'sendEnvoy', cityStateId: cs.id });
+      // 模拟消耗使者（实际由 sendEnvoy 处理）
+      player.storedEnvoys--;
+    }
+  }
+  return commands;
+}
+
 export function aiDecide(state: GameState, player: PlayerState): GameCommand[] {
   const commands: GameCommand[] = [];
   const rng = createRng(hash(state.seed, state.turn, playerIdx(player.id)));
@@ -310,6 +338,7 @@ export function aiDecide(state: GameState, player: PlayerState): GameCommand[] {
   commands.push(...aiPlaceDistricts(state, player));
   commands.push(...aiBuildBuildings(state, player));
   commands.push(...aiChangeGovernment(state, player));
+  commands.push(...aiSendEnvoys(state, player));
   commands.push(...aiUnitActions(state, player, rng, skipChance));
 
   commands.push({ kind: 'endTurn' });
