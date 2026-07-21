@@ -5,7 +5,7 @@ import { theme } from './theme';
 import { panelStyle } from './uiStyles';
 
 export function ReligionPanel() {
-  const state = useGame((s) => s.state);
+  const players = useGame((s) => s.state.players);
   const player = useCurrentPlayer();
 
   if (!player.pantheon && !player.religionId) return null;
@@ -26,7 +26,7 @@ export function ReligionPanel() {
           宗教：{player.religionName ?? player.religionId}
           {player.holyCityId && (
             <span style={{ color: theme.colors.textMuted }}>
-              ｜圣城：{state.players.flatMap((p) => p.cities).find((c) => c.id === player.holyCityId)?.name ?? '未知'}
+              ｜圣城：{players.flatMap((p) => p.cities).find((c) => c.id === player.holyCityId)?.name ?? '未知'}
             </span>
           )}
         </div>

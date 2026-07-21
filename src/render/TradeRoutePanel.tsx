@@ -8,7 +8,7 @@ const YIELD_LABEL: Record<string, string> = {
 };
 
 export function TradeRoutePanel() {
-  const state = useGame((s) => s.state);
+  const players = useGame((s) => s.state.players);
   const player = useCurrentPlayer();
 
   if (player.tradeRoutes.length === 0 && player.tradeRouteCapacity === 0) return null;
@@ -21,7 +21,7 @@ export function TradeRoutePanel() {
       ) : (
         player.tradeRoutes.map((tr) => {
           const fromCity = player.cities.find((c) => c.id === tr.fromCityId);
-          const toPlayer = state.players.find((p) => p.id === tr.toPlayerId);
+          const toPlayer = players.find((p) => p.id === tr.toPlayerId);
           const toCity = toPlayer?.cities.find((c) => c.id === tr.toCityId);
           const yieldStr = Object.entries(tr.yieldPerTurn)
             .filter(([, v]) => v > 0)

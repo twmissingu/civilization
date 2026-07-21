@@ -1,7 +1,7 @@
 {
   "name": "civilization",
   "private": true,
-  "version": "0.3.0",
+  "version": "0.4.0",
   "type": "module",
   "description": "文明6 开源复现 - Web 端回合制 4X 策略游戏（TS + PixiJS + React + Vite）",
   "scripts": {

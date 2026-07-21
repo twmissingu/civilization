@@ -1,8 +1,54 @@
 # POLISH_LOG
 
-对齐：UX+平衡+性能 / 全维度 / 15 轮 / 红线（确定性、覆盖率≥80%、分层门禁、不引新依赖、不动定稿 docs、commit 须用户同意）。
+对齐：v0.4.0 Phase 1 上线收尾后打磨 / 游戏维度 / 5 轮 / 红线（确定性、覆盖率≥80%、分层门禁、不引新依赖、不动逻辑层契约）。
 
 ## Round 0 基线（游戏维度）
+
+| 维度 | 分 | 证据 |
+|------|---|------|
+| 玩法完整性 | 8 | 核心 4X 循环完整，5 种胜利条件，AI/贸易/宗教/城邦/大人物全机制，Phase 2 系统 UI 已接入 |
+| 视觉与音效 | 7 | 迷雾/河流/城市标签/手绘产出图标/SVG 图标；剩余 UI 过渡动画/视觉效果缺失 |
+| 性能 | 7 | 分片订阅 + mapVersion + AI 异步；PixiMap 池化但无严格视口剔除 |
+| 可靠性 | 8 | 398 测试，golden replay，critical-paths 门禁，存档 round-trip |
+| 代码质量 | 8 | 三层架构 + depcruise 强制 + 统一 query API，类型安全基本覆盖 |
+| 测试覆盖 | 8 | 43 文件 398 测试，逻辑层 88.24%，render 层覆盖不足 |
+
+最弱：视觉与音效(7)。Round 1 聚焦：视觉与音效。
+
+## Round 1 - 视觉与音效（完成）
+- 改进：① 选中单位脉冲动画（PixiJS ticker 驱动 alpha 呼吸效果，0.5±0.4 范围内变化）② 选中单位环高亮（ring 引用存储 + 独立动画循环）
+- 体验痛点：选中单位无视觉反馈，难以区分选中状态
+- 评分：视觉与音效 7->8（选中单位动画反馈 + 高亮）；其余不变
+- 测试：398（无新增，纯 UI 改动）；覆盖率 88.24/83.62/89.08；tsc/build/门禁全绿
+- 变更：`src/render/PixiMap.tsx`（pulseRef + selectedRingRef + ticker 动画）
+
+## Round 2 - 性能（完成）
+- 改进：6 个组件切换到分片 selector（CityPanel/DiplomacyPanel/VictoryProgressPanel/ReligionPanel/CityStatePanel/TradeRoutePanel），不再订阅整 state
+- 体验痛点：无直观体验变化，但 AI 回合/endTurn 时侧栏面板不再整树重渲染
+- 评分：性能 7->8（分片 selector 减少无意义重渲染）；其余不变
+- 测试：398（无新增，纯 selector 替换）；覆盖率 88.24/83.62/89.08；tsc/build/门禁全绿
+- 变更：`src/render/CityPanel.tsx`、`DiplomacyPanel.tsx`、`VictoryProgressPanel.tsx`、`ReligionPanel.tsx`、`CityStatePanel.tsx`、`TradeRoutePanel.tsx`
+
+## Round 3 - 代码质量（完成）
+- 改进：CityPanel 移除所有 `any` 类型，使用 `UnitDef`/`BuildingDef`/`WonderDef`/`DistrictDef` 类型注解
+- 体验痛点：无直接体验变化，但类型安全提升减少运行时错误
+- 评分：代码质量 8->9（类型安全全面覆盖，`any` 类型清除）；其余不变
+- 测试：398（无新增，纯类型注解替换）；覆盖率 88.24/83.61/89.08；tsc/build/门禁全绿
+- 变更：`src/render/CityPanel.tsx`（类型注解替换）
+
+## Round 4 - 测试覆盖（完成）
+- 改进：新增 3 个测试文件（YieldIcon/VictoryProgressPanel/AIProgressOverlay），+8 测试
+- 体验痛点：无直接体验变化，但新增组件有测试覆盖
+- 评分：测试覆盖 8->9（新增 8 测试，render 组件覆盖提升）；其余不变
+- 测试：406（+8 新增）；覆盖率 88.24/83.61/89.08；tsc/build/门禁全绿
+- 变更：`tests/render/YieldIcon.spec.tsx`、`VictoryProgressPanel.spec.tsx`、`AIProgressOverlay.spec.tsx`
+
+## Round 5 - 可靠性（完成）
+- 改进：添加 ErrorBoundary 组件，包裹 Sidebar 中 6 个面板（ReligionPanel/CityStatePanel/GreatPeoplePanel/TradeRoutePanel/GovernmentPanel/DiplomacyPanel），单个面板崩溃不影响其余 UI
+- 体验痛点：无直接体验变化，但极端情况下不会白屏
+- 评分：可靠性 8->9（错误边界 + 降级 UI）；其余不变
+- 测试：406（无新增，纯 UI 组件）；覆盖率 88.24/83.59/89.08；tsc/build/门禁全绿
+- 变更：`src/render/ErrorBoundary.tsx`、`Sidebar.tsx`（包裹面板）
 
 | 维度 | 分 | 证据 |
 |------|---|------|

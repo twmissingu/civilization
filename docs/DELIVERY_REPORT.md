@@ -1,40 +1,37 @@
-# 交付报告（jiuqing-product-polish 第三轮）
+# 交付报告（jiuqing-product-polish 第四轮）
 
 ## 项目概况
-文明6 开源复现 -- Web 端回合制 4X 策略游戏（TS + PixiJS + React + Vite）。v0.2.0 已发布（GitHub 开源，MIT）。本轮为 v0.2.0 发布后的 HUD/UX 重构稳定打磨。
+文明6 开源复现 -- Web 端回合制 4X 策略游戏（TypeScript + PixiJS + React + Vite）。v0.4.0，Phase 1 上线收尾完成后的打磨。
 
 ## 打磨总轮次
-第三轮 1 轮（上限 10，第 1 轮收敛终止）。聚焦：稳定现有 HUD/UX 重构 + 修复测试。
+5 轮（上限 5，达到轮次上限终止）。逐维度聚焦：视觉与音效 → 性能 → 代码质量 → 测试覆盖 → 可靠性。
 
 ## 本轮稳定功能增量
-- HUD/UX 重构：App.tsx 瘦身（-625 行），提取 ~20 个独立 UI 组件（Sidebar/CityPanel/UnitPanel/ResearchPanel/CivicsPanel/GovernmentPanel/DiplomacyPanel/VictoryBanner/TurnTodoPanel/TileInfoPanel/EventLogPanel/EventLogOverlay/CivHeader/ConfirmDialogManager/Tooltip/AssetImage/ExpandableList）
-- 新增逻辑函数：`reachableTiles`（BFS 可达格子）、`formatYield`（产出格式化抽象）、日志上限 1000
-- 修复：combat 事件文明名称解析 bug（unit ID → ownerId），render 测试 DOM 泄漏修复
-- 测试：141/141 全绿，覆盖逻辑+渲染层
-- 门禁：纯度 20 文件、depcruise 784 模块、覆盖率 90.37/82.93/95.19 全部通过
+- 选中单位脉冲动画（PixiJS ticker 驱动 alpha 呼吸效果）
+- 分片 selector 优化（6 个组件切换到粒度订阅，减少整树重渲染）
+- CityPanel 类型安全全面覆盖（所有 `any` 类型替换为 `UnitDef`/`BuildingDef`/`WonderDef`/`DistrictDef`）
+- 新增 8 个测试（YieldIcon/VictoryProgressPanel/AIProgressOverlay），406 总测试
+- ErrorBoundary 组件包裹 6 个面板，单个面板崩溃不影响其余 UI
 
 ## 各维度最终评分（1-10）
+
 | 维度 | 分 | 依据 |
 |------|---|------|
-| 玩法完整性 | 9 | 全机制 + reachableTiles/日志上限 |
-| 视觉与音效 | 9 | 94 资产 + 组件化 UI |
-| 性能 | 8 | <3s 验证 + 日志上限 |
-| 可靠性 | 9 | 修复 combat 事件 bug + 失败玩家跳过 + 存档损坏矩阵 |
-| 代码质量 | 8 | App.tsx 大幅瘦身 + 关注点分离 + query.ts + describe.ts 重构 |
-| 测试覆盖 | 8 | 141 测试，90.37/82.93/95.19 |
+| 玩法完整性 | 8 | 核心 4X 循环完整，5 种胜利条件，Phase 2 系统 UI 全接入 |
+| 视觉与音效 | 8 | 迷雾/河流/城市标签/SVG 图标/选中单位动画；剩余 UI 过渡效果 |
+| 性能 | 8 | 分片订阅 + mapVersion + AI 异步 + 分片 selector；PixiMap 池化 |
+| 可靠性 | 9 | 406 测试 + golden replay + critical-paths 门禁 + ErrorBoundary |
+| 代码质量 | 9 | 三层架构 + depcruise 强制 + 统一 query API + 类型安全全覆盖 |
+| 测试覆盖 | 9 | 46 文件 406 测试，逻辑层 88.24%，render 层覆盖提升 |
 
 ## 已知限制
-- 新提取 UI 组件尚无独立单元测试（仅端到端 smoke 覆盖）
-- 美术 94/~250（全类目覆盖，剩余可经同一管线补齐）
-- 平衡为 MVP 级（Phase 3 专项）
-- 大地图未做视口剔除
-- 音频（Phase 5）
-
-## 质量门禁
-`npm run check` = 纯度（20 文件）+ depcruise（784 模块）+ 覆盖率（≥80%）+ 测试（141）全绿；`npm run build` 通过。
+- 科技/市政树仍为纵向列表，无网络图可视化
+- CityPanel 无全屏模式
+- 无音频系统
+- 美术资产仍有缺失（部分使用占位颜色）
 
 ## 后续建议
-- 新 UI 组件（~20 个）补充独立 render 测试
-- 补全量美术（94→~250）
-- 平衡专项调优、大地图视口剔除
-- 可打 v0.3.0 发布（待 commit+tag）
+- 科技/市政树网络图可视化（Phase 2 XL 任务）
+- CityPanel 全屏重构
+- 平衡专项调优（战斗/增长数值）
+- 音频系统（Phase 5）

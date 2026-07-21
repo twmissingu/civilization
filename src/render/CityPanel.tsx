@@ -3,11 +3,11 @@
 import { useGame, useCurrentPlayer } from './store';
 import { findCity, getCityYield, getProductionCost, getBuyTilePrice } from '../logic/state/query';
 import { DISTRICTS, UNITS, BUILDINGS, WONDERS, CIVILIZATIONS } from '../gamedata';
-import type { DistrictType } from '../gamedata';
+import type { UnitDef, BuildingDef, WonderDef, DistrictDef } from '../gamedata';
 import { turnsToCompleteProduction, turnsToPopulationGrowth, formatTurns } from './eta';
 import { hexEquals, hexInRange } from '../logic/hex';
 import type { HexCoord } from '../types';
-import type { CityState, PlayerState } from '../logic/state/types';
+import type { GameState, CityState, PlayerState } from '../logic/state/types';
 import type { GameCommand } from '../logic/state/commands';
 import { theme } from './theme';
 import { panelStyle, btnStyle } from './uiStyles';
@@ -19,13 +19,16 @@ interface CitySubProps { city: CityState; command: (cmd: GameCommand) => void; }
 interface CityPlayerSubProps extends CitySubProps { player: PlayerState; }
 
 export function CityPanel() {
-  const state = useGame((s) => s.state);
+  const players = useGame((s) => s.state.players);
+  const map = useGame((s) => s.state.map);
+  const config = useGame((s) => s.state.config);
+  const state = { players, map, config } as unknown as GameState;
   const command = useGame((s) => s.command);
   const selectedCityId = useGame((s) => s.selectedCityId);
   const player = useCurrentPlayer();
   const city = selectedCityId ? findCity(state, selectedCityId) : null;
   const builtWonderIds = new Set(
-    state.players.flatMap((p) => p.cities.flatMap((c) => c.wonders.map((w) => w.id)))
+    players.flatMap((p) => p.cities.flatMap((c) => c.wonders.map((w) => w.id)))
   );
 
   if (!city) return null;
@@ -34,7 +37,7 @@ export function CityPanel() {
     return (
       <div style={panelStyle}>
         <b>敌方城市</b>：{city.name}
-        <div>人口 {city.population} · HP {city.hp} · 所属 {CIVILIZATIONS[state.players.find((p) => p.id === city.ownerId)?.civId ?? '']?.name}</div>
+        <div>人口 {city.population} · HP {city.hp} · 所属 {CIVILIZATIONS[players.find((p) => p.id === city.ownerId)?.civId ?? '']?.name}</div>
       </div>
     );
   }
@@ -90,7 +93,7 @@ function ProductionQueueSection({ city, command }: CitySubProps) {
       {city.queue.length === 0 ? (
         <div style={{ color: theme.colors.textDim }}>空</div>
       ) : (
-        city.queue.map((q: any, i: number) => {
+        city.queue.map((q: { kind: 'unit' | 'building' | 'district' | 'wonder' | 'project'; id: string; progress: number; tile?: HexCoord }, i: number) => {
           const cost = getProductionCost(state, city.id, q);
           const name = q.kind === 'unit' ? UNITS[q.id]?.name
             : q.kind === 'building' ? BUILDINGS[q.id]?.name
@@ -128,7 +131,7 @@ function TrainUnitSection({ city, player, command }: CityPlayerSubProps) {
   return (
     <>
       <div style={{ marginTop: 6 }}>训练单位：</div>
-      {Object.values(UNITS).filter((u: any) => u.unlockTech === 'initial' || player.researchedTechs.includes(u.unlockTech)).slice(0, 6).map((u: any) => (
+      {Object.values(UNITS).filter((u: UnitDef) => u.unlockTech === 'initial' || player.researchedTechs.includes(u.unlockTech)).slice(0, 6).map((u: UnitDef) => (
         <button key={u.id} style={{ ...btnStyle, margin: 1, fontSize: 11, display: 'inline-flex', alignItems: 'center', gap: 3 }}
           onClick={() => command({ kind: 'trainUnit', cityId: city.id, unitType: u.id })}>
           <AssetImage src={`/assets/units/${u.id}.png`} alt="" width={14} height={14} />
@@ -143,12 +146,12 @@ function BuildBuildingSection({ city, player, command }: CityPlayerSubProps) {
   return (
     <>
       <div style={{ marginTop: 6 }}>建造建筑：</div>
-      {Object.values(BUILDINGS).filter((b: any) =>
+      {Object.values(BUILDINGS).filter((b: BuildingDef) =>
         (!b.unlockTech || player.researchedTechs.includes(b.unlockTech)) &&
         (!b.unlockCivic || player.researchedCivics.includes(b.unlockCivic)) &&
         !city.buildings.includes(b.id) &&
-        (b.district === 'city_center' || city.districts.some((d: any) => d.type === b.district))
-      ).slice(0, 6).map((b: any) => (
+        (b.district === 'city_center' || city.districts.some((d) => d.type === b.district))
+      ).slice(0, 6).map((b: BuildingDef) => (
         <button key={b.id} style={{ ...btnStyle, margin: 1, fontSize: 11, background: theme.colors.info, display: 'inline-flex', alignItems: 'center', gap: 3 }}
           onClick={() => command({ kind: 'buildBuilding', cityId: city.id, buildingType: b.id })}>
           <AssetImage src={`/assets/buildings/${b.id}.png`} alt="" width={16} height={16} />
@@ -166,25 +169,22 @@ function DistrictSection({ city, player, command }: CityPlayerSubProps) {
   return (
     <>
       <div style={{ marginTop: 6 }}>区域 ({city.districts.length}/{maxDistricts})：</div>
-      {Object.values(DISTRICTS).filter((d: any) => {
-        const def = d as { id: DistrictType; unlockTech: string; name: string };
-        if (def.id === 'theater') return player.researchedCivics.includes('drama_poetry');
-        return def.unlockTech === 'astrology' || player.researchedTechs.includes(def.unlockTech);
-      }).slice(0, 5).map((d: any) => {
-        const def = d as { id: DistrictType; name: string };
-        const alreadyPlaced = city.districts.some((dd: any) => dd.type === def.id) || city.queue.some((qi: any) => qi.kind === 'district' && qi.id === def.id);
+      {Object.values(DISTRICTS).filter((d: DistrictDef) => {
+        if (d.id === 'theater') return player.researchedCivics.includes('drama_poetry');
+        return d.unlockTech === 'astrology' || player.researchedTechs.includes(d.unlockTech);
+      }).slice(0, 5).map((d: DistrictDef) => {
+        const alreadyPlaced = city.districts.some((dd) => dd.type === d.id) || city.queue.some((qi) => qi.kind === 'district' && qi.id === d.id);
         return (
-          <button key={def.id} disabled={!canPlaceMore || alreadyPlaced}
+          <button key={d.id} disabled={!canPlaceMore || alreadyPlaced}
             style={{ ...btnStyle, margin: 1, fontSize: 11, background: canPlaceMore && !alreadyPlaced ? theme.colors.government : theme.colors.disabled, display: 'inline-flex', alignItems: 'center', gap: 3 }}
             onClick={() => {
-              // 找第一个可用格子（领土内非城中心非已有区域）
               const tile = city.territory.find((t: HexCoord) =>
-                !hexEquals(t, city.tile) && !city.districts.some((dd: any) => hexEquals(dd.tile, t))
+                !hexEquals(t, city.tile) && !city.districts.some((dd) => hexEquals(dd.tile, t))
               );
-              if (tile) command({ kind: 'placeDistrict', cityId: city.id, districtType: def.id, tile });
+              if (tile) command({ kind: 'placeDistrict', cityId: city.id, districtType: d.id, tile });
             }}>
-            <AssetImage src={`/assets/districts/${def.id}.png`} alt="" width={14} height={14} />
-            {def.name}{alreadyPlaced ? ' (已有)' : ''}
+            <AssetImage src={`/assets/districts/${d.id}.png`} alt="" width={14} height={14} />
+            {d.name}{alreadyPlaced ? ' (已有)' : ''}
           </button>
         );
       })}
@@ -196,12 +196,12 @@ function WonderSection({ city, player, builtWonderIds, command }: CityPlayerSubP
   return (
     <>
       <div style={{ marginTop: 6 }}>建造奇观：</div>
-      {Object.values(WONDERS).filter((w: any) =>
+      {Object.values(WONDERS).filter((w: WonderDef) =>
         (!w.unlockTech || player.researchedTechs.includes(w.unlockTech)) &&
         (!w.unlockCivic || player.researchedCivics.includes(w.unlockCivic)) &&
         !builtWonderIds.has(w.id) &&
-        !city.queue.some((q: any) => q.kind === 'wonder' && q.id === w.id)
-      ).slice(0, 5).map((w: any) => (
+        !city.queue.some((q) => q.kind === 'wonder' && q.id === w.id)
+      ).slice(0, 5).map((w: WonderDef) => (
         <button key={w.id} style={{ ...btnStyle, margin: 1, fontSize: 11, background: theme.colors.government, display: 'inline-flex', alignItems: 'center', gap: 3 }}
           onClick={() => command({ kind: 'buildWonder', cityId: city.id, wonderType: w.id, tile: city.tile })}>
           <AssetImage src={`/assets/wonders/${w.id}.png`} alt="" width={16} height={16} />

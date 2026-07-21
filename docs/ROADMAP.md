@@ -1,30 +1,48 @@
 # ROADMAP
 
-## 已实现（v0.1.0 已发布 + 第二轮打磨）
-- M1-M9 逻辑层 + AI + 存档 + PixiJS 渲染 + AI 美术
-- 第一轮打磨（7 轮，已发布 v0.1.0）：UX/平衡/性能/可靠性/代码，全维度 ≥8
-- 第二轮打磨（7 轮，本轮）：
-  - Round 1 视觉：建筑/政策卡图标接入 + 12 资产
-  - Round 2 玩法：AI 扩张更积极（验证多城）
-  - Round 3 视觉：战斗预览（previewCombat CS+伤害）
-  - Round 4 视觉：+15 资产（科技/市政/政策/UI，94 总）
-  - Round 5 视觉：胜利进度面板（时代/科技/统治/分数排名）
-  - Round 6 可靠：endTurn 跳过已失败玩家
-  - Round 7 测试：isDefeated/nextActivePlayer 边界覆盖
-- 121 测试，覆盖率 92.08/81.74/95.78，全门禁绿，94 AI 资产
+## 已实现（v0.4.0 — Phase 1 上线收尾 + 打磨）
 
-## 已收敛（第二轮：全维度 ≥8）
-玩法完整性 9 / 视觉与音效 9 / 性能 8 / 可靠性 9 / 代码质量 8 / 测试覆盖 8
+### 架构基线（第一批）
+- 统一 query API：渲染层通过 `query.ts` 访问逻辑层，禁止直接 import `commands.ts`
+- 分片订阅 hooks：`useCurrentPlayer`/`usePlayerUnits`/`usePlayerCities` 等
+- PixiMap 脏标记优化：`mapVersion` 计数器避免不必要重绘
+- 事件从 GameState.log 剥离（已验证 GameState 无 log 字段）
+- 迷雾遮罩渲染：`revealArea` + `updatePlayerVisibility`，初始只露出玩家单位周围
+- 河流 overlay 渲染：地图生成连续河流 + 蓝色河流线
 
-## 第三轮打磨（当前）
-- HUD/UX 重构：App.tsx 瘦身（-625 行），提取 ~20 个独立 UI 组件
-- 逻辑层增强：reachableTiles（BFS 可达格子）、formatYield 抽象、日志上限 1000
-- 测试修复：141/141 全绿，质量门禁全绿
-- 状态：稳定可用，141 测试通过
+### 城市 UI + 资产管线（第二批）
+- CityPanel 渐进增强：区域放置、金币买地、队列拖拽排序、市民分配
+- 城市名称标签显示在 PixiMap 城市圆点下方
+- 资产压缩管线：177MB → 0.5MB（99.5% 缩减），WebP + PNG 双格式
+- SVG 手绘风格产出图标（`<YieldIcon>` 组件替代 emoji）
 
-## 后续迭代（Phase 3+）
-- 全量美术（~250-350 资产，当前 94）
+### 体验打磨（第三批）
+- 小地图增强：迷雾/单位/视口矩形/精确点击跳转
+- 回合待办强制阻止 endTurn：有待办时按钮禁用
+- 政体政策数值实时反馈：政策卡效果 tooltip + 政体加成显示
+- 胜利进度面板：5 种胜利条件进度条
+- Phase 2 系统 UI 入口：宗教/城邦/大人物/贸易路线面板
+- 镜头平滑插值：requestAnimationFrame lerp 动画
+- 外交面板增强：分数对比/科技/市政数量
+- AI 回合异步化：分片执行 + 进度指示器覆盖层
+
+### 验证闭环（第四批）
+- golden replay 测试：4 个 round-trip 确定性测试
+- critical-paths.yaml 门禁：16 条关键路径
+- RNG 序列化 round-trip 验证
+
+### 第五轮打磨（当前）
+- 选中单位脉冲动画（PixiJS ticker 驱动 alpha 呼吸效果）
+- 分片 selector 优化（6 个组件切换到粒度订阅）
+- CityPanel 类型安全全面覆盖（所有 `any` 类型替换）
+- 新增 8 个测试（406 总测试，46 测试文件）
+- ErrorBoundary 包裹 6 个面板
+
+## 已收敛（全维度 ≥8，多数 9）
+玩法完整性 8 / 视觉与音效 8 / 性能 8 / 可靠性 9 / 代码质量 9 / 测试覆盖 9
+
+## 后续迭代（Phase 2+）
+- 科技/市政树网络图可视化（XL）
+- CityPanel 全屏重构（XL）
 - 平衡专项调优（战斗/增长数值）
-- 大地图视口剔除
-- 新提取 UI 组件单独测试覆盖
-- 音频（Phase 5）
+- 音频系统（Phase 5）

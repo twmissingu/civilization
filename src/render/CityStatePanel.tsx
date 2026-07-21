@@ -5,15 +5,15 @@ import { theme } from './theme';
 import { panelStyle } from './uiStyles';
 
 export function CityStatePanel() {
-  const state = useGame((s) => s.state);
+  const cityStates = useGame((s) => s.state.cityStates);
   const player = useCurrentPlayer();
 
-  if (state.cityStates.length === 0) return null;
+  if (cityStates.length === 0) return null;
 
   return (
     <div style={panelStyle}>
       <b>🏛 城邦（使者 {player.storedEnvoys}）</b>
-      {state.cityStates.filter((cs) => cs.isAlive).map((cs) => {
+      {cityStates.filter((cs) => cs.isAlive).map((cs) => {
         const def = CITY_STATES[cs.id];
         const myEnvoys = cs.envoys[player.id] ?? 0;
         return (

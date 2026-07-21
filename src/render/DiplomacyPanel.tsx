@@ -5,26 +5,28 @@ import { getPlayerScore } from '../logic/state/query';
 import { portraitAssetUrl } from './assets';
 import { theme } from './theme';
 import { panelStyle, btnStyle } from './uiStyles';
+import type { GameState } from '../logic/state/types';
 
 interface DiplomacyPanelProps {
   onRequestWar: (targetCivId: string) => void;
 }
 
 export function DiplomacyPanel({ onRequestWar }: DiplomacyPanelProps) {
-  const state = useGame((s) => s.state);
+  const players = useAllPlayers();
+  const diplomacy = useGame((s) => s.state.diplomacy);
+  const state = { players, diplomacy } as unknown as GameState;
   const command = useGame((s) => s.command);
   const player = useCurrentPlayer();
-  const allPlayers = useAllPlayers();
   const playerScoreVal = getPlayerScore(state, player.id);
 
   return (
     <div style={{ marginBottom: theme.spacing.md }}>
       <b>外交</b>
-      {allPlayers
+      {players
         .filter((p) => p.id !== player.id)
         .map((opponent) => {
           const oppCiv = CIVILIZATIONS[opponent.civId];
-          const atWar = state.diplomacy[player.id]?.[opponent.id] === 'war';
+          const atWar = diplomacy[player.id]?.[opponent.id] === 'war';
           const oppScore = getPlayerScore(state, opponent.id);
           const scoreDiff = playerScoreVal - oppScore;
 

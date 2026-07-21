@@ -107,6 +107,9 @@ export function PixiMap({ onRequestAttack }: PixiMapProps = {}) {
   const currentCamRef = useRef<{ x: number; y: number } | null>(null);
   const targetCamRef = useRef<{ x: number; y: number } | null>(null);
   const animatingRef = useRef(false);
+  // 选中单位脉冲动画
+  const pulseRef = useRef(0);
+  const selectedRingRef = useRef<Graphics | null>(null);
 
   useEffect(() => {
     let destroyed = false;
@@ -138,6 +141,14 @@ export function PixiMap({ onRequestAttack }: PixiMapProps = {}) {
             cur.y += dy * 0.12;
           }
           draw();
+        });
+        // 选中单位脉冲动画
+        app.ticker.add(() => {
+          pulseRef.current = (pulseRef.current + 0.04) % (Math.PI * 2);
+          if (selectedRingRef.current) {
+            const alpha = 0.5 + Math.sin(pulseRef.current) * 0.4;
+            selectedRingRef.current.alpha = alpha;
+          }
         });
         draw();
         const unitTypes = ['warrior', 'archer', 'settler', 'builder', 'swordsman', 'cavalry', 'slinger', 'knight', 'catapult', 'trireme', 'quadrireme', 'musketman', 'cannon', 'siege_tower'];
@@ -472,6 +483,13 @@ export function PixiMap({ onRequestAttack }: PixiMapProps = {}) {
     const ring = ensureGraphics(ringKey, layer);
     ring.position.set(cx, cy);
     ring.circle(0, 0, DISP * 0.72).fill({ color: ringCol, alpha: acted ? 0.4 : 0.9 }).stroke({ width: 1.5, color: 0x000000, alpha: 0.5 });
+    // 记录选中单位的环，用于脉冲动画
+    if (unit.id === selectedUnitId) {
+      selectedRingRef.current = ring;
+      ring.alpha = 0.9;
+    } else if (selectedRingRef.current === ring) {
+      selectedRingRef.current = null;
+    }
 
     const uTex = unitTexRef.current.get(unit.type);
     if (uTex) {

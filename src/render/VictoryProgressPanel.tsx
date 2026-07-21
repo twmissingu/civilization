@@ -4,7 +4,8 @@ import { theme } from './theme';
 import { panelStyle } from './uiStyles';
 
 export function VictoryProgressPanel() {
-  const state = useGame((s) => s.state);
+  const turn = useGame((s) => s.state.turn);
+  const maxTurns = useGame((s) => s.state.config.maxTurns);
   const player = useCurrentPlayer();
   const allPlayers = useAllPlayers();
 
@@ -20,8 +21,7 @@ export function VictoryProgressPanel() {
     .reduce((sum, p) => sum + p.totalCultureGenerated, 0);
   const tourismProgress = totalCulture > 0 ? Math.min(100, Math.round((player.totalTourism / (totalCulture * 0.5)) * 100)) : 0;
 
-  const maxTurns = state.config.maxTurns;
-  const turnProgress = Math.round((state.turn / maxTurns) * 100);
+  const turnProgress = Math.round((turn / maxTurns) * 100);
 
   return (
     <div style={panelStyle}>
@@ -73,7 +73,7 @@ export function VictoryProgressPanel() {
       <div style={{ fontSize: 11, marginTop: 4 }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', color: theme.colors.textMuted }}>
           <span>📊 分数胜利</span>
-          <span>回合 {state.turn}/{maxTurns}</span>
+          <span>回合 {turn}/{maxTurns}</span>
         </div>
         <div style={{ height: 3, background: theme.colors.progressTrack, borderRadius: theme.borderRadius, marginTop: 1 }}>
           <div style={{ height: 3, width: `${turnProgress}%`, background: theme.colors.textMuted, borderRadius: theme.borderRadius }} />
