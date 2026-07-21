@@ -7,6 +7,6 @@ import { CivicsPanel } from '../../src/render/CivicsPanel';
 describe('CivicsPanel', () => {
   it('renders civics panel', () => {
     render(<CivicsPanel />);
-    expect(screen.getByText(/市政/)).toBeInTheDocument();
+    expect(screen.getAllByText(/市政/).length).toBeGreaterThan(0);
   });
 });

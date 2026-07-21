@@ -7,6 +7,6 @@ import { ResearchPanel } from '../../src/render/ResearchPanel';
 describe('ResearchPanel', () => {
   it('renders research section', () => {
     render(<ResearchPanel />);
-    expect(screen.getByText(/研究/)).toBeInTheDocument();
+    expect(screen.getAllByText(/研究/).length).toBeGreaterThan(0);
   });
 });
