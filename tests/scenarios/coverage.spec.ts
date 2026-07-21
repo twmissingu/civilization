@@ -12,6 +12,7 @@ import { advanceResearch, canResearch, computeEra } from '../../src/logic/state/
 import { getTile } from '../../src/logic/state/mapgen';
 import { hexNeighbors, hexEquals } from '../../src/logic/hex';
 import { checkVictory } from '../../src/logic/state/victory';
+import { getPlayerEra, getPlayerScore, canPlayerResearch, canPlayerResearchCivic } from '../../src/logic/state/query';
 import type { GameState, GameConfig, UnitState, CityState } from '../../src/logic/state/types';
 
 function makeState(seed = 7): GameState {
@@ -412,6 +413,27 @@ describe('combat 死亡场景', () => {
     const result = checkVictory(state);
     expect(result).toBeTruthy();
     expect(result!.type).toBe('culture');
+  });
+
+  it('getPlayerScore works for current player', () => {
+    const state = makeState();
+    expect(getPlayerScore(state)).toBeGreaterThan(0);
+  });
+
+  it('getPlayerEra returns correct era', () => {
+    const state = makeState();
+    const era = getPlayerEra(state);
+    expect(typeof era).toBe('string');
+  });
+
+  it('canPlayerResearch returns true for available tech', () => {
+    const state = makeState();
+    expect(canPlayerResearch(state, 'pottery')).toBe(true);
+  });
+
+  it('canPlayerResearchCivic returns false for already-researched civic', () => {
+    const state = makeState();
+    expect(canPlayerResearchCivic(state, 'code_of_laws')).toBe(false);
   });
 
   it('playerYield 包含旅游产出', () => {

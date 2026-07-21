@@ -97,3 +97,35 @@ describe('civic 分支', () => {
     expect(advanceCivic(state.players[0], 100)).toBeNull();
   });
 });
+
+describe('more commands', () => {
+  it('reorderQueue on non-existent city fails', () => {
+    const state = makeState();
+    expect(canExecute(state, { kind: 'reorderQueue', cityId: 'nope', fromIndex: 0, toIndex: 5 })).not.toBeNull();
+  });
+
+  it('removeFromQueue on non-existent city fails', () => {
+    const state = makeState();
+    expect(canExecute(state, { kind: 'removeFromQueue', cityId: 'nope', index: 99 })).not.toBeNull();
+  });
+
+  it('assignCitizen on non-existent city fails', () => {
+    const state = makeState();
+    expect(canExecute(state, { kind: 'assignCitizen', cityId: 'nope', tile: { q: 0, r: 0 } })).not.toBeNull();
+  });
+
+  it('unassignCitizen on non-existent city fails', () => {
+    const state = makeState();
+    expect(canExecute(state, { kind: 'unassignCitizen', cityId: 'nope', tile: { q: 0, r: 0 } })).not.toBeNull();
+  });
+
+  it('choosePromotion on non-existent unit fails', () => {
+    const state = makeState();
+    expect(canExecute(state, { kind: 'choosePromotion', unitId: 'nope', promotionId: 'commander' })).not.toBeNull();
+  });
+
+  it('suePeace on non-existent target fails', () => {
+    const state = makeState();
+    expect(canExecute(state, { kind: 'suePeace', targetCivId: 'nope' })).not.toBeNull();
+  });
+});
