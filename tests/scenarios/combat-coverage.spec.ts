@@ -709,4 +709,29 @@ describe('canLevelUp', () => {
     const unit: UnitState = { id: 'u', ownerId: 'player-0', type: 'warrior', tile: { q: 0, r: 0 }, hp: 100, moveLeft: 2, xp: 10, level: 1, promotions: ['discipline'], hasActed: false };
     expect(canLevelUp(unit)).toBe(false);
   });
+
+  it('平衡性：相同 CS 战斗伤害约 30', () => {
+    const state = makeState();
+    const attacker: UnitState = { id: 'a', ownerId: 'player-0', type: 'warrior', tile: { q: 5, r: 5 }, hp: 100, moveLeft: 2, xp: 0, level: 1, promotions: [], hasActed: false };
+    const defender: UnitState = { id: 'b', ownerId: 'player-1', type: 'warrior', tile: { q: 5, r: 5 }, hp: 100, moveLeft: 2, xp: 0, level: 1, promotions: [], hasActed: false };
+    state.players[0].units.push(attacker);
+    state.players[1].units.push(defender);
+    state.diplomacy['player-0']['player-1'] = 'war';
+    state.diplomacy['player-1']['player-0'] = 'war';
+    const result = resolveAttack(state, attacker, defender);
+    expect(result.defenderDamage).toBeGreaterThanOrEqual(10);
+    expect(result.defenderDamage).toBeLessThanOrEqual(100);
+  });
+
+  it('平衡性：高 CS 单位对低 CS 单位有明显优势', () => {
+    const state = makeState();
+    const swordsman: UnitState = { id: 's', ownerId: 'player-0', type: 'swordsman', tile: { q: 5, r: 5 }, hp: 100, moveLeft: 2, xp: 0, level: 1, promotions: [], hasActed: false };
+    const warrior: UnitState = { id: 'w', ownerId: 'player-1', type: 'warrior', tile: { q: 5, r: 5 }, hp: 100, moveLeft: 2, xp: 0, level: 1, promotions: [], hasActed: false };
+    state.players[0].units.push(swordsman);
+    state.players[1].units.push(warrior);
+    state.diplomacy['player-0']['player-1'] = 'war';
+    state.diplomacy['player-1']['player-0'] = 'war';
+    const result = resolveAttack(state, swordsman, warrior);
+    expect(result.defenderDamage).toBeGreaterThan(result.attackerDamage);
+  });
 });
