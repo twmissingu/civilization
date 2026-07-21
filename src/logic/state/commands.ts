@@ -13,7 +13,7 @@ import { resolveAttack, resolveAttackCity, cityAt, isEnemyCity, availablePromoti
 import { foundCity, buyTilePrice, settleCity, productionCost } from './city';
 import { playerYield } from './yield';
 import { resolveTurn } from './turnResolution';
-import { findUnit, findCity, currentPlayer, unitAt } from './query';
+import { findUnit, findCity, currentPlayer, unitAt, findPlayer } from './query';
 import { canSendEnvoy, sendEnvoy } from './citystate';
 import { canRecruitGreatPerson, recruitGreatPerson } from './greatpeople';
 import { canStartTradeRoute, startTradeRoute } from './traderoute';
@@ -54,7 +54,8 @@ export type GameCommand =
   | { kind: 'assignCitizen'; cityId: string; tile: HexCoord }
   | { kind: 'unassignCitizen'; cityId: string; tile: HexCoord }
   | { kind: 'reorderQueue'; cityId: string; fromIndex: number; toIndex: number }
-  | { kind: 'removeFromQueue'; cityId: string; index: number };
+  | { kind: 'removeFromQueue'; cityId: string; index: number }
+  | { kind: 'offerTrade'; targetCivId: string; offerGold: number; demandGold: number };
 
 // ---------- helpers（移至 query.ts，此处 re-export 保持兼容）----------
 export { findUnit, findCity, currentPlayer };
@@ -230,6 +231,14 @@ export function canExecute(state: GameState, cmd: GameCommand): RuleError | null
       const c = findCity(state, cmd.cityId);
       if (!c || c.ownerId !== player.id) return { code: 'OWNER', message: '非当前玩家城市' };
       if (cmd.index < 0 || cmd.index >= c.queue.length) return { code: 'INVALID', message: '无效索引' };
+      return null;
+    }
+    case 'offerTrade': {
+      const target = findPlayer(state, cmd.targetCivId);
+      if (!target) return { code: 'NO_TARGET', message: '目标文明不存在' };
+      if (state.diplomacy[player.id]?.[cmd.targetCivId] === 'war') return { code: 'AT_WAR', message: '战争状态无法交易' };
+      if (cmd.offerGold < 0 || cmd.demandGold < 0) return { code: 'INVALID', message: '金额不能为负' };
+      if (player.gold < cmd.offerGold) return { code: 'NO_GOLD', message: '金币不足' };
       return null;
     }
     case 'endTurn':
@@ -439,6 +448,20 @@ export function applyCommand(state: GameState, cmd: GameCommand): { state: GameS
       const city = findCity(s, cmd.cityId);
       if (city && cmd.index >= 0 && cmd.index < city.queue.length) {
         city.queue.splice(cmd.index, 1);
+      }
+      break;
+    }
+    case 'offerTrade': {
+      const target = findPlayer(s, cmd.targetCivId);
+      if (target && cmd.offerGold >= 0 && cmd.demandGold >= 0 && player.gold >= cmd.offerGold) {
+        // AI 简单接受/拒绝逻辑：只接受净收益 > 0 的交易
+        const netGain = cmd.offerGold - cmd.demandGold;
+        if (target.isAI && netGain < 0) break; // AI 拒绝亏本交易
+        player.gold -= cmd.offerGold;
+        player.gold += cmd.demandGold;
+        target.gold += cmd.offerGold;
+        target.gold -= cmd.demandGold;
+        events.push({ kind: 'TradeCompleted', turn: s.turn, payload: { fromId: player.id, toId: cmd.targetCivId, offerGold: cmd.offerGold, demandGold: cmd.demandGold } });
       }
       break;
     }

@@ -1,4 +1,5 @@
 // 外交面板（增强版）
+import { useState } from 'react';
 import { useGame, useCurrentPlayer, useAllPlayers } from './store';
 import { CIVILIZATIONS } from '../gamedata';
 import { getPlayerScore } from '../logic/state/query';
@@ -12,6 +13,7 @@ interface DiplomacyPanelProps {
 }
 
 export function DiplomacyPanel({ onRequestWar }: DiplomacyPanelProps) {
+  const [tradeGold, setTradeGold] = useState<Record<string, number>>({});
   const players = useAllPlayers();
   const diplomacy = useGame((s) => s.state.diplomacy);
   const state = { players, diplomacy } as unknown as GameState;
@@ -65,12 +67,39 @@ export function DiplomacyPanel({ onRequestWar }: DiplomacyPanelProps) {
                   求和
                 </button>
               ) : (
-                <button
-                  style={{ ...btnStyle, marginTop: 4, fontSize: 10, background: theme.colors.danger }}
-                  onClick={() => onRequestWar(opponent.id)}
-                >
-                  宣战
-                </button>
+                <div>
+                  <div style={{ display: 'flex', gap: 4, marginTop: 4 }}>
+                    <button
+                      style={{ ...btnStyle, fontSize: 10, background: theme.colors.danger, flex: 1 }}
+                      onClick={() => onRequestWar(opponent.id)}
+                    >
+                      宣战
+                    </button>
+                    <button
+                      style={{ ...btnStyle, fontSize: 10, background: theme.colors.gold, flex: 1 }}
+                      onClick={() => {
+                        const amount = tradeGold[opponent.id] ?? 0;
+                        if (amount > 0 && player.gold >= amount) {
+                          command({ kind: 'offerTrade', targetCivId: opponent.id, offerGold: amount, demandGold: 0 });
+                        }
+                      }}
+                    >
+                      赠金
+                    </button>
+                  </div>
+                  <div style={{ display: 'flex', gap: 4, marginTop: 2, alignItems: 'center' }}>
+                    <input
+                      type="number"
+                      min={0}
+                      max={player.gold}
+                      value={tradeGold[opponent.id] ?? 0}
+                      onChange={(e) => setTradeGold({ ...tradeGold, [opponent.id]: Math.max(0, Math.min(player.gold, parseInt(e.target.value) || 0)) })}
+                      style={{ width: 60, padding: '2px 4px', fontSize: 10, borderRadius: theme.borderRadius, border: `1px solid ${theme.colors.border}`, background: theme.colors.bg, color: theme.colors.text }}
+                      placeholder="金额"
+                    />
+                    <span style={{ fontSize: 10, color: theme.colors.textDim }}>金 {player.gold}</span>
+                  </div>
+                </div>
               )}
             </div>
           );
