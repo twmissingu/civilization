@@ -6,6 +6,7 @@ import { PixiMap } from './PixiMap';
 import { TopBar } from './TopBar';
 import { Sidebar } from './Sidebar';
 import { VictoryBanner } from './VictoryBanner';
+import { VictoryScreen } from './VictoryScreen';
 import { EventLogOverlay } from './EventLogOverlay';
 import { HelpModal } from './HelpModal';
 import { ConfirmDialogManager, type PendingConfirm } from './ConfirmDialogManager';
@@ -106,6 +107,7 @@ export function App() {
       <HelpModal isOpen={showHelp} onClose={() => setShowHelp(false)} />
       <AIProgressOverlay />
       <TutorialOverlay />
+      <VictoryScreen />
     </div>
   );
 }

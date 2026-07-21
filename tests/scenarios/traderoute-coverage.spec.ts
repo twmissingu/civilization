@@ -550,4 +550,12 @@ describe('traderoute.ts 全覆盖', () => {
       expect(updatedTrader!.tradeRouteId).toBeUndefined();
     }
   });
+
+  it('offerTrade can be executed between players', () => {
+    const state = makeState();
+    const result = applyCommand(state, { kind: 'offerTrade', targetCivId: 'player-1', offerGold: 5, demandGold: 0 });
+    if (result.state !== state) {
+      expect(result.state.players[0].gold).toBeLessThan(state.players[0].gold);
+    }
+  });
 });

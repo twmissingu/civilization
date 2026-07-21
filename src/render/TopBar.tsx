@@ -1,10 +1,12 @@
 // 顶部资源条与全局操作
+import { useState } from 'react';
 import { Tooltip, ResourceTooltip } from './Tooltip';
 import { theme } from './theme';
 import { useGame, useCurrentPlayer } from './store';
 import { CIVILIZATIONS } from '../gamedata';
 import { getPlayerYield } from '../logic/state/query';
 import { YieldIcon } from './YieldIcon';
+import { NewGameDialog } from './NewGameDialog';
 
 interface TopBarProps {
   onShowHelp: () => void;
@@ -18,11 +20,11 @@ function computeTodoCount(player: { units: { moveLeft: number; hasActed: boolean
 }
 
 export function TopBar({ onShowHelp }: TopBarProps) {
+  const [showNewGame, setShowNewGame] = useState(false);
   const message = useGame((s) => s.message);
   const endTurn = useGame((s) => s.endTurn);
   const save = useGame((s) => s.save);
   const load = useGame((s) => s.load);
-  const newGame = useGame((s) => s.newGame);
   const turn = useGame((s) => s.state.turn);
   const state = useGame((s) => s.state);
   const player = useCurrentPlayer();
@@ -120,8 +122,9 @@ export function TopBar({ onShowHelp }: TopBarProps) {
         <button onClick={load} style={{ ...btnBase, background: theme.colors.info }}>读取</button>
       </Tooltip>
       <Tooltip content="开始新游戏">
-        <button onClick={() => newGame()} style={{ ...btnBase, background: theme.colors.danger }}>新局</button>
+        <button onClick={() => setShowNewGame(true)} style={{ ...btnBase, background: theme.colors.danger }}>新局</button>
       </Tooltip>
+      {showNewGame && <NewGameDialog onClose={() => setShowNewGame(false)} />}
       <Tooltip content="查看游戏帮助和规则（?）">
         <button onClick={onShowHelp} style={{ ...btnBase, background: theme.colors.disabled }} aria-label="帮助">?</button>
       </Tooltip>

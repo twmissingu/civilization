@@ -57,6 +57,22 @@ export function resolveAttack(state: GameState, attacker: UnitState, defender: U
   const defenderKilled = defender.hp <= 0;
   const attackerKilled = attacker.hp <= 0;
 
+  // 平民单位被攻击时被俘获（不管是否被击杀）
+  const dClass = dDef?.unitClass;
+  if (!isRanged && (dClass === 'civilian' || dClass === 'support')) {
+    const attackerPlayer = state.players.find((p) => p.id === attacker.ownerId);
+    if (attackerPlayer) {
+      defender.ownerId = attacker.ownerId;
+      defender.hp = Math.max(1, defender.hp);
+      // 从原所有者移除
+      const oldOwner = state.players.find((p) => p.id !== attacker.ownerId && p.units.some((u) => u.id === defender.id));
+      if (oldOwner) {
+        oldOwner.units = oldOwner.units.filter((u) => u.id !== defender.id);
+      }
+      attackerPlayer.units.push(defender);
+    }
+  }
+
   if (defenderKilled) {
     defender.hp = 0;
     removeUnit(state, defender);

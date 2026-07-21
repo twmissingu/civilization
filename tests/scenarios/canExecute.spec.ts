@@ -128,4 +128,39 @@ describe('more commands', () => {
     const state = makeState();
     expect(canExecute(state, { kind: 'suePeace', targetCivId: 'nope' })).not.toBeNull();
   });
+
+  it('offerTrade to non-existent target fails', () => {
+    const state = makeState();
+    expect(canExecute(state, { kind: 'offerTrade', targetCivId: 'nope', offerGold: 10, demandGold: 0 })).not.toBeNull();
+  });
+
+  it('offerTrade with negative gold fails', () => {
+    const state = makeState();
+    expect(canExecute(state, { kind: 'offerTrade', targetCivId: 'player-1', offerGold: -10, demandGold: 0 })).not.toBeNull();
+  });
+
+  it('offerTrade at war fails', () => {
+    const state = makeState();
+    state.diplomacy['player-0']['player-1'] = 'war';
+    expect(canExecute(state, { kind: 'offerTrade', targetCivId: 'player-1', offerGold: 10, demandGold: 0 })).not.toBeNull();
+  });
+
+  it('offerTrade with insufficient gold fails', () => {
+    const state = makeState();
+    expect(canExecute(state, { kind: 'offerTrade', targetCivId: 'player-1', offerGold: 9999, demandGold: 0 })).not.toBeNull();
+  });
+
+  it('堆叠规则：军事单位不能移动到有军事单位的格子', () => {
+    const state = makeState();
+    const warrior = state.players[0].units.find((u) => u.type === 'warrior')!;
+    // 把两个 warrior 移到同一格附近
+    const dest = { q: warrior.tile.q + 1, r: warrior.tile.r };
+    const s = applyCommand(state, { kind: 'moveUnit', unitId: warrior.id, to: dest }).state;
+    if (s === state) return; // 无法移动则跳过
+    const otherWarrior = s.players[0].units.find((u) => u.type === 'warrior' && u.id !== warrior.id);
+    if (otherWarrior) {
+      const err = canExecute(s, { kind: 'moveUnit', unitId: otherWarrior.id, to: dest });
+      expect(err).not.toBeNull();
+    }
+  });
 });

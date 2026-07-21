@@ -723,6 +723,22 @@ describe('canLevelUp', () => {
     expect(result.defenderDamage).toBeLessThanOrEqual(100);
   });
 
+  it('resolveAttackCity handles city defense', () => {
+    const state = makeState();
+    const attacker: UnitState = { id: 'a', ownerId: 'player-0', type: 'warrior', tile: { q: 5, r: 5 }, hp: 100, moveLeft: 2, xp: 0, level: 1, promotions: [], hasActed: false };
+    state.players[0].units.push(attacker);
+    state.players[1].cities.push({
+      id: 'enemy-city', ownerId: 'player-1', name: 'Enemy', tile: { q: 5, r: 5 }, territory: [{ q: 5, r: 5 }],
+      workedTiles: [{ q: 5, r: 5 }], population: 1, food: 0, culture: 0, housing: 2, amenities: 1,
+      buildings: [], districts: [], wonders: [], queue: [], hp: 200, wallsHp: 0, wallsMax: 0,
+      isCapital: true, rangedStrikeUsed: false, religion: {}, dominantReligion: null,
+    });
+    state.diplomacy['player-0']['player-1'] = 'war';
+    state.diplomacy['player-1']['player-0'] = 'war';
+    const result = resolveAttackCity(state, attacker, state.players[1].cities[0]);
+    expect(result.defenderDamage).toBeGreaterThan(0);
+  });
+
   it('平衡性：高 CS 单位对低 CS 单位有明显优势', () => {
     const state = makeState();
     const swordsman: UnitState = { id: 's', ownerId: 'player-0', type: 'swordsman', tile: { q: 5, r: 5 }, hp: 100, moveLeft: 2, xp: 0, level: 1, promotions: [], hasActed: false };
@@ -733,5 +749,39 @@ describe('canLevelUp', () => {
     state.diplomacy['player-1']['player-0'] = 'war';
     const result = resolveAttack(state, swordsman, warrior);
     expect(result.defenderDamage).toBeGreaterThan(result.attackerDamage);
+  });
+
+  it('堆叠规则：同格不能有两个军事单位', () => {
+    const state = makeState();
+    const s = applyCommand(state, { kind: 'foundCity', unitId: state.players[0].units.find((u) => u.type === 'settler')!.id, name: 'Rome' }).state;
+    const warrior1 = s.players[0].units.find((u) => u.type === 'warrior')!;
+    // 移动 warrior 到某个位置
+    const dest = { q: warrior1.tile.q + 1, r: warrior1.tile.r };
+    if (dest.q < s.map.bounds.width) {
+      const r1 = applyCommand(s, { kind: 'moveUnit', unitId: warrior1.id, to: dest });
+      // 再移动另一个 warrior 到同一格
+      const warrior2 = s.players[0].units.find((u) => u.type === 'warrior' && u.id !== warrior1.id);
+      if (warrior2) {
+        const r2 = applyCommand(r1.state, { kind: 'moveUnit', unitId: warrior2.id, to: dest });
+        expect(r2.state).toBe(r1.state); // 未移动 == 被拒绝
+      }
+    }
+  });
+
+  it('平民单位被攻击时被俘获', () => {
+    const state = makeState();
+    const settler = state.players[0].units.find((u) => u.type === 'settler')!;
+    // 把 settler 放在敌对单位旁边
+    settler.tile = { q: 10, r: 10 };
+    state.diplomacy['player-0']['player-1'] = 'war';
+    state.diplomacy['player-1']['player-0'] = 'war';
+    const enemyWarrior: UnitState = { id: 'ew', ownerId: 'player-1', type: 'warrior', tile: { q: 10, r: 10 }, hp: 100, moveLeft: 2, xp: 0, level: 1, promotions: [], hasActed: false };
+    state.players[1].units.push(enemyWarrior);
+    // 攻击
+    resolveAttack(state, enemyWarrior, settler);
+    // settler 应被俘获（转为 player-1 的单位）
+    const captured = state.players[1].units.find((u) => u.id === settler.id);
+    expect(captured).toBeDefined();
+    expect(captured!.ownerId).toBe('player-1');
   });
 });

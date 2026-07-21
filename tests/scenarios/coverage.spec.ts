@@ -12,7 +12,7 @@ import { advanceResearch, canResearch, computeEra } from '../../src/logic/state/
 import { getTile } from '../../src/logic/state/mapgen';
 import { hexNeighbors, hexEquals } from '../../src/logic/hex';
 import { checkVictory } from '../../src/logic/state/victory';
-import { getPlayerEra, getPlayerScore, canPlayerResearch, canPlayerResearchCivic } from '../../src/logic/state/query';
+import { findUnit, findCity, unitAt, cityAt, getTileAt, findPlayer, getTileInfo, getTileInfoShort, canUnitBuildImprovement, canPlayerChangeGovernment, canPlayerSwitchPolicy, getPlayerEra, getPlayerScore, canPlayerResearch, canPlayerResearchCivic, getPlayerYield, getCityYield, getProductionCost, getBuyTilePrice } from '../../src/logic/state/query';
 import type { GameState, GameConfig, UnitState, CityState } from '../../src/logic/state/types';
 
 function makeState(seed = 7): GameState {
@@ -179,6 +179,13 @@ describe('yield 分支', () => {
     tile.improvement = 'farm';
     tileYield(tile, true);
   });
+  it('playerYield with specific playerId', () => {
+    const state = makeState();
+    const y = playerYield(state, state.players[0]);
+    expect(y.food).toBeGreaterThanOrEqual(0);
+    expect(y.gold).toBeGreaterThanOrEqual(0);
+  });
+
   it('cityYield 各政体加成', () => {
     const state = makeState();
     const settler = state.players[0].units.find((u) => u.type === 'settler')!;
@@ -426,9 +433,125 @@ describe('combat 死亡场景', () => {
     expect(typeof era).toBe('string');
   });
 
+  it('getPlayerYield with no playerId returns current player', () => {
+    const state = makeState();
+    const y = getPlayerYield(state);
+    expect(y.food).toBeGreaterThanOrEqual(0);
+  });
+
+  it('getCityYield returns real yields for existing city', () => {
+    const state = makeState();
+    // 先建城
+    const settler = state.players[0].units.find((u) => u.type === 'settler')!;
+    const s2 = applyCommand(state, { kind: 'foundCity', unitId: settler.id, name: 'Rome' }).state;
+    const city = s2.players[0].cities[0];
+    const y = getCityYield(s2, city.id);
+    expect(y.food).toBeGreaterThan(0);
+  });
+
+  it('getProductionCost returns finite value for existing city', () => {
+    const state = makeState();
+    const settler = state.players[0].units.find((u) => u.type === 'settler')!;
+    const s2 = applyCommand(state, { kind: 'foundCity', unitId: settler.id, name: 'Rome' }).state;
+    const city = s2.players[0].cities[0];
+    const cost = getProductionCost(s2, city.id, { kind: 'unit', id: 'warrior', progress: 0 });
+    expect(cost).toBeGreaterThan(0);
+    expect(cost).toBeLessThan(Infinity);
+  });
+
+  it('getBuyTilePrice returns finite value for existing city', () => {
+    const state = makeState();
+    const settler = state.players[0].units.find((u) => u.type === 'settler')!;
+    const s2 = applyCommand(state, { kind: 'foundCity', unitId: settler.id, name: 'Rome' }).state;
+    const city = s2.players[0].cities[0];
+    const price = getBuyTilePrice(s2, city.id, { q: city.tile.q + 1, r: city.tile.r });
+    expect(price).toBeGreaterThan(0);
+    expect(price).toBeLessThan(Infinity);
+  });
+
+  it('findUnit returns undefined for non-existent', () => {
+    expect(findUnit(makeState(), 'nope')).toBeUndefined();
+  });
+
+  it('findCity returns undefined for non-existent', () => {
+    expect(findCity(makeState(), 'nope')).toBeUndefined();
+  });
+
+  it('unitAt returns undefined for out-of-bounds', () => {
+    expect(unitAt(makeState(), { q: -1, r: -1 })).toBeUndefined();
+  });
+
+  it('cityAt returns undefined for empty tile', () => {
+    expect(cityAt(makeState(), { q: 0, r: 0 })).toBeUndefined();
+  });
+
+  it('getTileAt returns undefined for out-of-bounds', () => {
+    expect(getTileAt(makeState(), { q: -1, r: -1 })).toBeUndefined();
+  });
+
+  it('findPlayer returns undefined for non-existent', () => {
+    expect(findPlayer(makeState(), 'nope')).toBeUndefined();
+  });
+
+  it('getTileInfo returns a string', () => {
+    const state = makeState();
+    const tile = state.map.tiles[0];
+    expect(typeof getTileInfo(state, tile.coord)).toBe('string');
+  });
+
+  it('getTileInfoShort returns a string', () => {
+    const state = makeState();
+    const tile = state.map.tiles[0];
+    expect(typeof getTileInfoShort(state, tile.coord)).toBe('string');
+  });
+
+  it('canUnitBuildImprovement returns false for non-existent unit', () => {
+    expect(canUnitBuildImprovement(makeState(), 'nope', 'farm')).toBe(false);
+  });
+
+  it('canPlayerChangeGovernment returns false for non-existent player', () => {
+    expect(canPlayerChangeGovernment(makeState(), 'oligarchy', 'nope')).toBe(false);
+  });
+
+  it('canPlayerSwitchPolicy returns false for non-existent player', () => {
+    expect(canPlayerSwitchPolicy(makeState(), 'discipline', 0, 'nope')).toBe(false);
+  });
+
+  it('canPlayerChangeGovernment returns true for unlocked government', () => {
+    const state = makeState();
+    // 初始已研究 code_of_laws，可切酋邦
+    expect(canPlayerChangeGovernment(state, 'chiefdom')).toBe(true);
+  });
+
+  it('canPlayerSwitchPolicy valid slot returns true', () => {
+    const state = makeState();
+    expect(canPlayerSwitchPolicy(state, 'discipline', 0)).toBe(true);
+  });
+
+  it('getPlayerScore with no playerId returns current player score', () => {
+    expect(getPlayerScore(makeState())).toBeGreaterThan(0);
+  });
+
+  it('getPlayerEra with no playerId returns current player era', () => {
+    expect(typeof getPlayerEra(makeState())).toBe('string');
+  });
+
+  it('getPlayerYield with playerId returns correct shape', () => {
+    const y = getPlayerYield(makeState(), 'player-0');
+    expect(y).toHaveProperty('food');
+    expect(y).toHaveProperty('production');
+    expect(y).toHaveProperty('gold');
+  });
+
   it('canPlayerResearch returns true for available tech', () => {
     const state = makeState();
     expect(canPlayerResearch(state, 'pottery')).toBe(true);
+  });
+
+  it('canPlayerResearch with playerId returns correct result', () => {
+    const state = makeState();
+    expect(canPlayerResearch(state, 'pottery', 'player-0')).toBe(true);
+    expect(canPlayerResearch(state, 'education', 'player-0')).toBe(false);
   });
 
   it('canPlayerResearchCivic returns false for already-researched civic', () => {

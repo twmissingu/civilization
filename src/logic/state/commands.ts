@@ -103,6 +103,18 @@ export function canExecute(state: GameState, cmd: GameCommand): RuleError | null
       if (!u || u.ownerId !== player.id) return { code: 'OWNER', message: '非当前玩家单位' };
       if (!inBounds(cmd.to, state.map.bounds)) return { code: 'OOB', message: '越界' };
       if (findPath(state, u, cmd.to) === null) return { code: 'NO_PATH', message: '无可达路径' };
+      // 堆叠规则：同一格不能有两个军事单位
+      const targetDef = UNITS[u.type];
+      const isMilitary = targetDef && targetDef.unitClass === 'military';
+      if (isMilitary) {
+        const existingMilitary = unitAt(state, cmd.to);
+        if (existingMilitary && existingMilitary.ownerId === player.id) {
+          const existingDef = UNITS[existingMilitary.type];
+          if (existingDef && existingDef.unitClass === 'military') {
+            return { code: 'STACK', message: '该格已有军事单位' };
+          }
+        }
+      }
       return null;
     }
     case 'attack': {

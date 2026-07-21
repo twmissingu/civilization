@@ -34,9 +34,6 @@ function inEnemyZOC(state: GameState, coord: HexCoord, mover: UnitState): boolea
 /** 该格被敌方军事单位占据（不可通行，需攻击） */
 export function isBlocked(state: GameState, coord: HexCoord, mover: UnitState): boolean {
   for (const p of state.players) {
-    if (state.diplomacy[p.id]?.[mover.ownerId] !== 'war' && p.id !== mover.ownerId) {
-      // 中立/和平方单位也算阻挡
-    }
     for (const u of p.units) {
       if (hexEquals(u.tile, coord) && u.ownerId !== mover.ownerId) {
         const def = UNITS[u.type];

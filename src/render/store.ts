@@ -30,6 +30,7 @@ interface GameStore {
   mapVersion: number;
   cameraOffset: { x: number; y: number } | null;
   selectedUnitId: string | null;
+  gameConfig: GameConfig;
   selectedCityId: string | null;
   hoveredTile: HexCoord | null;
   cameraTarget: HexCoord | null;
@@ -43,7 +44,7 @@ interface GameStore {
   selectCity: (id: string | null) => void;
   setHoveredTile: (c: HexCoord | null) => void;
   setCameraOffset: (offset: { x: number; y: number } | null) => void;
-  newGame: (seed?: number) => void;
+  newGame: (seed?: number, config?: GameConfig) => void;
   save: () => Promise<void>;
   load: () => Promise<void>;
 }
@@ -52,6 +53,7 @@ export const useGame = create<GameStore>((set, get) => ({
   state: createInitialState(42, defaultConfig()),
   mapVersion: 0,
   cameraOffset: null,
+  gameConfig: defaultConfig(),
   aiRunning: false,
   aiProgress: null,
   selectedUnitId: null,
@@ -118,8 +120,9 @@ export const useGame = create<GameStore>((set, get) => ({
   },
   setHoveredTile: (c) => set({ hoveredTile: c }),
   setCameraOffset: (offset) => set({ cameraOffset: offset }),
-  newGame: (seed = Math.floor(Math.random() * 100000)) => {
-    set({ state: createInitialState(seed, defaultConfig()), mapVersion: 0, selectedUnitId: null, selectedCityId: null, cameraTarget: null, eventLog: [], message: `新游戏 seed=${seed}` });
+  newGame: (seed = Math.floor(Math.random() * 100000), config?: GameConfig) => {
+    const cfg = config ?? defaultConfig();
+    set({ state: createInitialState(seed, cfg), gameConfig: cfg, mapVersion: 0, selectedUnitId: null, selectedCityId: null, cameraTarget: null, eventLog: [], message: `新游戏 seed=${seed}` });
   },
   save: async () => {
     try {
