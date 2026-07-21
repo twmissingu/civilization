@@ -50,4 +50,15 @@ describe('TopBar', () => {
     expect(screen.getByText('罗马（式）')).toBeInTheDocument();
     expect(screen.getByText(/第 1 回合/)).toBeInTheDocument();
   });
+
+  it('renders end turn button', () => {
+    render(<TopBar onShowHelp={vi.fn()} />);
+    expect(screen.getAllByText(/结束回合/).length).toBeGreaterThan(0);
+  });
+
+  it('renders save and load buttons', () => {
+    render(<TopBar onShowHelp={vi.fn()} />);
+    expect(screen.getAllByText('保存').length).toBeGreaterThan(0);
+    expect(screen.getAllByText('读取').length).toBeGreaterThan(0);
+  });
 });
