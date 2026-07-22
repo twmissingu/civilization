@@ -1,20 +1,9 @@
 // CP-14 大人物招募 + 效果
 import { describe, it, expect } from 'vitest';
-import { createInitialState } from '../../src/logic/state/createInitialState';
 import { applyCommand, currentPlayer } from '../../src/logic/state/commands';
 import { canRecruitGreatPerson, availableGreatPeople } from '../../src/logic/state/greatpeople';
 import { GREAT_PEOPLE } from '../../src/gamedata';
-import type { GameConfig, GameState } from '../../src/logic/state/types';
-
-function makeState(seed = 42): GameState {
-  const config: GameConfig = {
-    mapSize: { width: 16, height: 12 },
-    civChoices: [{ id: 'rome', isAI: false }, { id: 'greece', isAI: true }],
-    difficulty: 'prince',
-    maxTurns: 300,
-  };
-  return createInitialState(seed, config);
-}
+import { makeState } from '../scenarios/helpers';
 
 describe('CP-14 大人物', () => {
   it('初始无伟人点时可招募列表为空', () => {

@@ -1,6 +1,5 @@
 // CP-16 宗教系统：万神殿、创立宗教、传教、宗教胜利
 import { describe, it, expect, beforeEach } from 'vitest';
-import { createInitialState } from '../../src/logic/state/createInitialState';
 import { applyCommand, currentPlayer } from '../../src/logic/state/commands';
 import {
   canFoundPantheon, canFoundReligion,
@@ -9,17 +8,8 @@ import {
   resetReligionIdCounter,
 } from '../../src/logic/state/religion';
 import { PANTHEON_FAITH_THRESHOLD, RELIGION_FOUND_FAITH_COST, MISSIONARY_FAITH_COST, APOSTLE_FAITH_COST } from '../../src/gamedata/religion';
-import type { GameConfig, GameState, PlayerState, CityState } from '../../src/logic/state/types';
-
-function makeState(seed = 42): GameState {
-  const config: GameConfig = {
-    mapSize: { width: 16, height: 12 },
-    civChoices: [{ id: 'rome', isAI: false }, { id: 'greece', isAI: true }],
-    difficulty: 'prince',
-    maxTurns: 300,
-  };
-  return createInitialState(seed, config);
-}
+import type { GameState, PlayerState, CityState } from '../../src/logic/state/types';
+import { makeState } from '../scenarios/helpers';
 
 /** 为当前玩家建城 */
 function foundCity(state: GameState, player: PlayerState, name: string): GameState {

@@ -1,21 +1,11 @@
 // CP-15 贸易路线系统
 import { describe, it, expect, beforeEach } from 'vitest';
-import { createInitialState } from '../../src/logic/state/createInitialState';
 import { applyCommand, currentPlayer } from '../../src/logic/state/commands';
 import { canStartTradeRoute, tradeRouteYield, resetRouteIdCounter } from '../../src/logic/state/traderoute';
 import { TRADE_ROUTE_DURATION, MAX_TRADE_ROUTE_DISTANCE, tradeRouteYieldTotal } from '../../src/gamedata/traderoutes';
 import { hexDistance } from '../../src/logic/hex';
-import type { GameConfig, GameState, PlayerState } from '../../src/logic/state/types';
-
-function makeState(seed = 42): GameState {
-  const config: GameConfig = {
-    mapSize: { width: 16, height: 12 },
-    civChoices: [{ id: 'rome', isAI: false }, { id: 'greece', isAI: true }],
-    difficulty: 'prince',
-    maxTurns: 300,
-  };
-  return createInitialState(seed, config);
-}
+import type { GameState, PlayerState } from '../../src/logic/state/types';
+import { makeState } from '../scenarios/helpers';
 
 /** 为当前玩家建城 */
 function foundCity(state: GameState, player: PlayerState, name: string): GameState {

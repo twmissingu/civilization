@@ -6,6 +6,7 @@ export default defineConfig({
   test: {
     environment: 'node',
     include: ['tests/**/*.{spec,test}.{ts,tsx}'],
+    exclude: ['tests/e2e/**'],
     coverage: {
       provider: 'v8',
       include: ['src/logic/**'],

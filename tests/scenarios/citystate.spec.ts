@@ -1,19 +1,8 @@
 // CP-13 城邦使者分配 + 宗主国加成
 import { describe, it, expect } from 'vitest';
-import { createInitialState } from '../../src/logic/state/createInitialState';
 import { applyCommand, currentPlayer } from '../../src/logic/state/commands';
 import { recomputeSuzerains, envoyCount, isSuzerain, canSendEnvoy, cityStateYieldBonus } from '../../src/logic/state/citystate';
-import type { GameConfig, GameState } from '../../src/logic/state/types';
-
-function makeState(seed = 42): GameState {
-  const config: GameConfig = {
-    mapSize: { width: 16, height: 12 },
-    civChoices: [{ id: 'rome', isAI: false }, { id: 'greece', isAI: true }],
-    difficulty: 'prince',
-    maxTurns: 300,
-  };
-  return createInitialState(seed, config);
-}
+import { makeState } from '../scenarios/helpers';
 
 describe('CP-13 城邦系统', () => {
   it('初始状态包含城邦实例', () => {

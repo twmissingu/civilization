@@ -1,6 +1,4 @@
 import { describe, it, expect } from 'vitest';
-import { createInitialState } from '../../src/logic/state/createInitialState';
-import { applyCommand } from '../../src/logic/state/commands';
 import { canBuildImprovement, buildImprovement } from '../../src/logic/state/builder';
 import { districtAdjacencyBonus } from '../../src/logic/state/district';
 import { resolveAttack, resolveAttackCity, previewCombat } from '../../src/logic/state/combat';
@@ -9,21 +7,16 @@ import { resolveTurn } from '../../src/logic/state/turnResolution';
 import { tileYield, cityYield, playerYield } from '../../src/logic/state/yield';
 import { moveUnit, isBlocked } from '../../src/logic/state/unitMove';
 import { advanceResearch, canResearch, computeEra } from '../../src/logic/state/tech';
+import { settleCity, productionCost } from '../../src/logic/state/city';
 import { getTile } from '../../src/logic/state/mapgen';
 import { hexNeighbors, hexEquals } from '../../src/logic/hex';
 import { checkVictory } from '../../src/logic/state/victory';
+import { hasAnySuzerain } from '../../src/logic/state/citystate';
+import { GOVERNMENT_REF } from '../../src/logic/state/yield';
 import { findUnit, findCity, unitAt, cityAt, getTileAt, findPlayer, getTileInfo, getTileInfoShort, canUnitBuildImprovement, canPlayerChangeGovernment, canPlayerSwitchPolicy, getPlayerEra, getPlayerScore, canPlayerResearch, canPlayerResearchCivic, getPlayerYield, getCityYield, getProductionCost, getBuyTilePrice } from '../../src/logic/state/query';
 import type { GameState, GameConfig, UnitState, CityState } from '../../src/logic/state/types';
-
-function makeState(seed = 7): GameState {
-  const config: GameConfig = {
-    mapSize: { width: 16, height: 12 },
-    civChoices: [{ id: 'rome', isAI: false }, { id: 'greece', isAI: true }],
-    difficulty: 'prince',
-    maxTurns: 300,
-  };
-  return createInitialState(seed, config);
-}
+import { createInitialState } from '../../src/logic/state/createInitialState';
+import { makeState, foundCityP0 } from '../scenarios/helpers';
 
 function landTile(state: GameState): { q: number; r: number } {
   for (const t of state.map.tiles) {
@@ -72,9 +65,7 @@ describe('district matchesSource 全分支', () => {
   it('各类加成来源触发', () => {
     const state = makeState();
     // 给 player 0 一个城市，便于放置区域/奇观
-    const settler = state.players[0].units.find((u) => u.type === 'settler')!;
-    const { state: s } = applyCommand(state, { kind: 'foundCity', unitId: settler.id, name: 'R' });
-    const city = s.players[0].cities[0];
+    const { state: s, city } = foundCityP0(state);
     const center = city.tile;
     const nb = hexNeighbors(center)[0];
     const nbTile = getTile(s.map, nb)!;
@@ -188,9 +179,7 @@ describe('yield 分支', () => {
 
   it('cityYield 各政体加成', () => {
     const state = makeState();
-    const settler = state.players[0].units.find((u) => u.type === 'settler')!;
-    const { state: s } = applyCommand(state, { kind: 'foundCity', unitId: settler.id, name: 'R' });
-    const city = s.players[0].cities[0];
+    const { state: s, city } = foundCityP0(state);
     const p = s.players[0];
     p.researchedCivics.push('political_philosophy', 'feudalism', 'theology', 'guilds', 'humanism', 'enlightenment');
     for (const g of ['classical_republic', 'monarchy', 'theocracy', 'merchant_republic', 'democracy'] as const) {
@@ -269,9 +258,7 @@ describe('文明能力', () => {
   });
   it('中国奇观加成', () => {
     const state = makeState();
-    const settler = state.players[0].units.find((u) => u.type === 'settler')!;
-    const { state: s } = applyCommand(state, { kind: 'foundCity', unitId: settler.id, name: 'R' });
-    const city = s.players[0].cities[0];
+    const { state: s, city } = foundCityP0(state);
     s.players[0].civId = 'china';
     city.wonders.push({ id: 'great_library', tile: city.tile });
     const yNoWonder = cityYield(s, { ...city, wonders: [] });
@@ -322,8 +309,7 @@ describe('战斗预览', () => {
 describe('turnResolution 分支', () => {
   it('resolveTurn 推进研究与市政', () => {
     const state = makeState();
-    const settler = state.players[0].units.find((u) => u.type === 'settler')!;
-    const { state: s } = applyCommand(state, { kind: 'foundCity', unitId: settler.id, name: 'R' });
+    const { state: s } = foundCityP0(state);
     s.players[0].currentResearch = { techId: 'pottery', progress: 0 };
     s.players[0].currentCivic = { civicId: 'military_tradition', progress: 0 };
     resolveTurn(s);
@@ -331,8 +317,7 @@ describe('turnResolution 分支', () => {
   });
   it('resolveTurn 触发科技胜利', () => {
     const state = makeState();
-    const settler = state.players[0].units.find((u) => u.type === 'settler')!;
-    const { state: s } = applyCommand(state, { kind: 'foundCity', unitId: settler.id, name: 'R' });
+    const { state: s } = foundCityP0(state);
     s.players[0].cities[0].spaceProject = { stage: 3, progress: 1500 };
     resolveTurn(s);
     expect(s.status).toBe('finished');
@@ -442,18 +427,14 @@ describe('combat 死亡场景', () => {
   it('getCityYield returns real yields for existing city', () => {
     const state = makeState();
     // 先建城
-    const settler = state.players[0].units.find((u) => u.type === 'settler')!;
-    const s2 = applyCommand(state, { kind: 'foundCity', unitId: settler.id, name: 'Rome' }).state;
-    const city = s2.players[0].cities[0];
+    const { state: s2, city } = foundCityP0(state);
     const y = getCityYield(s2, city.id);
     expect(y.food).toBeGreaterThan(0);
   });
 
   it('getProductionCost returns finite value for existing city', () => {
     const state = makeState();
-    const settler = state.players[0].units.find((u) => u.type === 'settler')!;
-    const s2 = applyCommand(state, { kind: 'foundCity', unitId: settler.id, name: 'Rome' }).state;
-    const city = s2.players[0].cities[0];
+    const { state: s2, city } = foundCityP0(state);
     const cost = getProductionCost(s2, city.id, { kind: 'unit', id: 'warrior', progress: 0 });
     expect(cost).toBeGreaterThan(0);
     expect(cost).toBeLessThan(Infinity);
@@ -461,9 +442,7 @@ describe('combat 死亡场景', () => {
 
   it('getBuyTilePrice returns finite value for existing city', () => {
     const state = makeState();
-    const settler = state.players[0].units.find((u) => u.type === 'settler')!;
-    const s2 = applyCommand(state, { kind: 'foundCity', unitId: settler.id, name: 'Rome' }).state;
-    const city = s2.players[0].cities[0];
+    const { state: s2, city } = foundCityP0(state);
     const price = getBuyTilePrice(s2, city.id, { q: city.tile.q + 1, r: city.tile.r });
     expect(price).toBeGreaterThan(0);
     expect(price).toBeLessThan(Infinity);
@@ -564,5 +543,101 @@ describe('combat 死亡场景', () => {
     const player = state.players[0];
     const y = playerYield(state, player);
     expect(y).toBeDefined();
+  });
+
+  it('WonderBuilt 事件在生产完成时触发', () => {
+    const state = makeState();
+    const { state: s, city } = foundCityP0(state);
+    // 添加奇观到队列
+    city.queue.push({ kind: 'wonder', id: 'pyramids', progress: 0, tile: city.tile });
+    // 设足够产能直接完成
+    city.queue[0].progress = 300; // pyramids cost 300
+    const events = settleCity(s, city);
+    expect(events.length).toBeGreaterThanOrEqual(1);
+    expect(events.some((e) => e.kind === 'WonderBuilt')).toBe(true);
+    const wonderEvent = events.find((e) => e.kind === 'WonderBuilt')!;
+    expect(wonderEvent.payload).toHaveProperty('wonderId');
+    expect(wonderEvent.payload).toHaveProperty('cityId');
+    expect(wonderEvent.payload).toHaveProperty('builderId');
+    // 奇观应该已添加到城市
+    expect(city.wonders.some((w) => w.id === 'pyramids')).toBe(true);
+  });
+
+  it('WonderBuilt 事件包含 cityId 用于镜头聚焦', () => {
+    const state = makeState();
+    const { state: s, city } = foundCityP0(state);
+    city.queue.push({ kind: 'wonder', id: 'great_library', progress: 0, tile: city.tile });
+    city.queue[0].progress = 300;
+    const events = settleCity(s, city);
+    const wonderEvent = events.find((e) => e.kind === 'WonderBuilt')!;
+    expect(wonderEvent.payload.cityId).toBe(city.id);
+  });
+
+  it('hasAnySuzerain 分支', () => {
+    const state = makeState();
+    expect(hasAnySuzerain(state, 'player-0')).toBe(false);
+    state.cityStates[0].isAlive = true;
+    state.cityStates[0].suzerainId = 'player-0';
+    expect(hasAnySuzerain(state, 'player-0')).toBe(true);
+  });
+
+  it('productionCost 覆盖 district 和 project 路径', () => {
+    const state = makeState();
+    const { state: s, city } = foundCityP0(state);
+    const districtCost = productionCost(s, city, { kind: 'district', id: 'campus', progress: 0 });
+    expect(districtCost).toBeGreaterThan(0);
+    const projectCost = productionCost(s, city, { kind: 'project', id: 'space_1', progress: 0 });
+    expect(projectCost).toBe(900);
+    const unknownCost = productionCost(s, city, { kind: 'project', id: 'unknown', progress: 0 });
+    expect(unknownCost).toBe(Infinity);
+  });
+
+  it('productionCost 覆盖 unknown unit/building/wonder', () => {
+    const state = makeState();
+    const { state: s, city } = foundCityP0(state);
+    expect(productionCost(s, city, { kind: 'unit', id: 'nonexistent', progress: 0 })).toBe(Infinity);
+    expect(productionCost(s, city, { kind: 'building', id: 'nonexistent', progress: 0 })).toBe(Infinity);
+    expect(productionCost(s, city, { kind: 'wonder', id: 'nonexistent', progress: 0 })).toBe(Infinity);
+  });
+
+  it('completeProduction 完成 builder 单位', () => {
+    const state = makeState();
+    const { state: s, city } = foundCityP0(state);
+    city.queue.push({ kind: 'unit', id: 'builder', progress: 0 });
+    // 直接设置完成进度，确保 >= cost
+    city.queue[0].progress = 100;
+    settleCity(s, city);
+    expect(s.players[0].units.some((u) => u.type === 'builder')).toBe(true);
+    expect(s.players[0].buildersBuilt).toBe(1);
+  });
+
+  it('completeProduction 完成 space project', () => {
+    const state = makeState();
+    const { state: s, city } = foundCityP0(state);
+    city.queue.push({ kind: 'project', id: 'space_1', progress: 0 });
+    city.queue[0].progress = 900;
+    settleCity(s, city);
+    expect(city.spaceProject).toBeDefined();
+    expect(city.spaceProject!.stage).toBe(1);
+  });
+
+  it('AI 难度加成：king 和 emperor', () => {
+    for (const diff of ['king', 'emperor'] as const) {
+      const config: GameConfig = {
+        mapSize: { width: 8, height: 6 },
+        civChoices: [{ id: 'rome', isAI: true }, { id: 'greece', isAI: true }],
+        difficulty: diff,
+        maxTurns: 300,
+      };
+      const state = createInitialState(42, config);
+      const y = playerYield(state, state.players[0]);
+      expect(y.gold).toBeGreaterThanOrEqual(0);
+    }
+  });
+
+  it('GOVERNMENT_REF returns GOVERNMENTS', () => {
+    const ref = GOVERNMENT_REF();
+    expect(ref).toBeDefined();
+    expect(ref.chiefdom).toBeDefined();
   });
 });

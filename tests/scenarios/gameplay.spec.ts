@@ -1,5 +1,4 @@
 import { describe, it, expect } from 'vitest';
-import { createInitialState } from '../../src/logic/state/createInitialState';
 import { applyCommand, findUnit, canExecute } from '../../src/logic/state/commands';
 import { cityYield } from '../../src/logic/state/yield';
 import { districtAdjacencyBonus, canPlaceDistrict } from '../../src/logic/state/district';
@@ -11,37 +10,12 @@ import { settleCity } from '../../src/logic/state/city';
 import { resolveTurn } from '../../src/logic/state/turnResolution';
 import { getTile } from '../../src/logic/state/mapgen';
 import { hexNeighbors, hexEquals } from '../../src/logic/hex';
-import type { GameState, GameConfig, UnitState } from '../../src/logic/state/types';
-
-function makeConfig(): GameConfig {
-  return {
-    mapSize: { width: 16, height: 12 },
-    civChoices: [
-      { id: 'rome', isAI: false },
-      { id: 'greece', isAI: true },
-    ],
-    difficulty: 'prince',
-    maxTurns: 300,
-  };
-}
-
-function makeState(seed = 42): GameState {
-  return createInitialState(seed, makeConfig());
-}
-
-/** 找玩家 0 的开拓者 */
-function settlerOf(state: GameState): UnitState {
-  const u = state.players[0].units.find((x) => x.type === 'settler');
-  if (!u) throw new Error('no settler');
-  return u;
-}
+import type { UnitState } from '../../src/logic/state/types';
+import { makeState, foundCityP0 } from '../scenarios/helpers';
 
 describe('CP-01 首回合建城并产出', () => {
   it('开拓者建城后城市存在且有产出', () => {
-    const state = makeState();
-    const settler = settlerOf(state);
-    const { state: s2 } = applyCommand(state, { kind: 'foundCity', unitId: settler.id, name: 'Roma' });
-    const city = s2.players[0].cities[0];
+    const { state: s2, city } = foundCityP0(makeState());
     expect(city).toBeDefined();
     expect(city.name).toBe('Roma');
     expect(city.population).toBe(1);
@@ -54,10 +28,7 @@ describe('CP-01 首回合建城并产出', () => {
 
 describe('CP-03 改良地块与产出', () => {
   it('建造者改良地块消耗充能并提升产出', () => {
-    const state = makeState();
-    const settler = settlerOf(state);
-    const { state: s2 } = applyCommand(state, { kind: 'foundCity', unitId: settler.id, name: 'Roma' });
-    const city = s2.players[0].cities[0];
+    const { state: s2, city } = foundCityP0(makeState());
     s2.players[0].researchedTechs.push('pottery', 'mining', 'animal_husbandry');
     const target = hexNeighbors(city.tile).find((n) => {
       const t = getTile(s2.map, n);
@@ -108,10 +79,7 @@ describe('CP-04 完成科技并解锁', () => {
 
 describe('CP-05 造兵与生产', () => {
   it('trainUnit 入队，生产完成后产出单位', () => {
-    const state = makeState();
-    const settler = settlerOf(state);
-    const { state: s2 } = applyCommand(state, { kind: 'foundCity', unitId: settler.id, name: 'Roma' });
-    const city = s2.players[0].cities[0];
+    const { state: s2, city } = foundCityP0(makeState());
     // 给一个工作的高产地块以加速
     const hills = hexNeighbors(city.tile).find((n) => getTile(s2.map, n)?.terrain === 'hills');
     if (hills) {
@@ -177,10 +145,7 @@ describe('CP-08 区域相邻加成（签名机制）', () => {
     expect(bonus.science).toBeGreaterThan(0);
   });
   it('placeDistrict 合法性：需领土内 + 解锁 + 人口门槛', () => {
-    const state = makeState();
-    const settler = settlerOf(state);
-    const { state: s2 } = applyCommand(state, { kind: 'foundCity', unitId: settler.id, name: 'Roma' });
-    const city = s2.players[0].cities[0];
+    const { state: s2, city } = foundCityP0(makeState());
     s2.players[0].researchedTechs.push('astrology');
     const inTile = city.territory.find((t) => !hexEquals(t, city.tile)) ?? city.territory[0];
     // territory 只有城中心，扩张几格
@@ -217,9 +182,7 @@ describe('CP-09 政体切换与政策卡', () => {
 
 describe('CP-11 存档 round-trip', () => {
   it('serialize/deserialize 行为等价', () => {
-    const state = makeState();
-    const settler = settlerOf(state);
-    const { state: s2 } = applyCommand(state, { kind: 'foundCity', unitId: settler.id, name: 'Roma' });
+    const { state: s2 } = foundCityP0(makeState());
     expect(roundTripEquivalent(s2)).toBe(true);
     const restored = deserialize(serialize(s2));
     const { state: a } = applyCommand(s2, { kind: 'endTurn' });
@@ -230,10 +193,7 @@ describe('CP-11 存档 round-trip', () => {
 
 describe('CP-12 胜利终局', () => {
   it('科技胜利：航天阶段 3 完成触发', () => {
-    const state = makeState();
-    const settler = settlerOf(state);
-    const { state: s2 } = applyCommand(state, { kind: 'foundCity', unitId: settler.id, name: 'Roma' });
-    const city = s2.players[0].cities[0];
+    const { state: s2, city } = foundCityP0(makeState());
     city.spaceProject = { stage: 3, progress: 1500 };
     const v = checkVictory(s2);
     expect(v).not.toBeNull();
@@ -264,7 +224,7 @@ describe('确定性', () => {
   it('同 seed + 同命令序列产出相同状态', () => {
     const seed = 42;
     const run = () => {
-      const s = createInitialState(seed, makeConfig());
+      const s = makeState(seed);
       const settler = s.players[0].units.find((u) => u.type === 'settler')!;
       const a = applyCommand(s, { kind: 'foundCity', unitId: settler.id, name: 'X' });
       const b = applyCommand(a.state, { kind: 'research', techId: 'pottery' });

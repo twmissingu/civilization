@@ -25,7 +25,6 @@ export class ErrorBoundary extends Component<Props, State> {
 
   componentDidCatch(error: Error, info: ErrorInfo) {
     const name = this.props.name ?? 'Unknown';
-    // eslint-disable-next-line no-console
     console.error(`[ErrorBoundary:${name}]`, error, info.componentStack);
   }
 

@@ -29,9 +29,7 @@
 - 🎨 105 AI 生成美术资产，压缩 177MB→0.5MB（99.5%），支持 WebP
 - 🏆 5 种胜利：科技（航天）/ 统治 / 分数 / 宗教 / 文化
 - 💾 存档/读档（IndexedDB + JSON 导出）
-- 🧪 406 测试，覆盖率 ≥88%，分层门禁 + 关键路径 + golden replay
-- 💾 存档读档（IndexedDB + JSON 导出）
-- 🧪 391 测试，覆盖率 ≥90%，分层由 dependency-cruiser + 纯度脚本强制
+- 🧪 540 测试，覆盖率 ≥91%，分层门禁 + 关键路径 + golden replay
 
 ## 快速开始
 
@@ -53,9 +51,9 @@ npm run dev       # 启动开发服务器（Vite HMR）
 
 ### 验证
 ```bash
-npm test               # 391 个测试（逻辑层+渲染层）
+npm test               # 540 个测试（逻辑层+渲染层）
 npm run test:coverage   # 覆盖率 ≥80%
-npm run check           # 纯度 + depcruise + 覆盖率门禁
+npm run check           # 纯度 + depcruise + 关键路径 + 覆盖率门禁
 npm run build           # 生产构建
 ```
 
@@ -96,4 +94,4 @@ npm run build           # 生产构建
 
 ## 状态
 
-Phase 1 MVP 完成（v0.4.0）——战争迷雾/河流/完整城市管理 UI/资产压缩管线/6 个 Phase 2 系统 UI 面板/胜利进度/golden replay 确定性验证/406 测试。见 `docs/ROADMAP.md`。
+Phase 1 MVP 完成（v0.6.0）——战争迷雾/河流/完整城市管理 UI/11 文明/资产压缩管线/6 个 Phase 2 系统 UI 面板/胜利进度/奇观建成与战斗特效/命令注册表模式/golden replay 确定性验证/540 测试。见 `docs/ROADMAP.md`。

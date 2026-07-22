@@ -1,19 +1,9 @@
 import { describe, it, expect } from 'vitest';
-import { createInitialState } from '../../src/logic/state/createInitialState';
-import type { GameState, GameConfig, UnitState } from '../../src/logic/state/types';
+import type { GameState, UnitState } from '../../src/logic/state/types';
 import { tileMoveCost, isBlocked, findPath, reachableTiles, moveUnit } from '../../src/logic/state/unitMove';
 import { getTile } from '../../src/logic/state/mapgen';
 import { hexNeighbors, hexEquals, hexDistance } from '../../src/logic/hex';
-
-function makeState(seed = 7): GameState {
-  const config: GameConfig = {
-    mapSize: { width: 16, height: 12 },
-    civChoices: [{ id: 'rome', isAI: false }, { id: 'greece', isAI: true }],
-    difficulty: 'prince',
-    maxTurns: 300,
-  };
-  return createInitialState(seed, config);
-}
+import { makeState } from '../scenarios/helpers';
 
 function warrior(state: GameState): UnitState {
   return state.players[0].units.find((u) => u.type === 'warrior')!;

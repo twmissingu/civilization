@@ -1,7 +1,7 @@
 {
   "name": "civilization",
   "private": true,
-  "version": "0.4.0",
+  "version": "0.6.0",
   "type": "module",
   "description": "文明6 开源复现 - Web 端回合制 4X 策略游戏（TS + PixiJS + React + Vite）",
   "scripts": {
@@ -11,13 +11,17 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
+    "test:e2e": "playwright test",
+    "test:e2e:ui": "playwright test --ui",
     "check:depcruise": "depcruise --config .dependency-cruiser.cjs src",
     "check:purity": "node scripts/check-purity.mjs",
     "check:critical-paths": "node scripts/check-critical-paths.mjs",
     "check:golden-replay": "vitest run tests/scenarios/golden-replay.spec.ts --reporter=verbose",
     "compress-assets": "node scripts/compress-assets.mjs",
     "check:balance": "node scripts/balance-check.mjs",
-    "check": "npm run check:purity && npm run check:depcruise && npm run check:critical-paths && npm run test:coverage && npm run check:golden-replay && npm run check:balance"
+    "lint": "eslint src/",
+    "format": "prettier --write \"src/**/*.{ts,tsx}\"",
+    "check": "npm run check:purity && npm run check:depcruise && npm run check:critical-paths && npm run lint && npm run test:coverage && npm run check:golden-replay && npm run check:balance"
   },
   "dependencies": {
     "immer": "^10.1.1",
@@ -28,6 +32,8 @@
     "zustand": "^4.5.4"
   },
   "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "@playwright/test": "^1.61.1",
     "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/react": "^16.3.2",
     "@types/node": "^20.14.14",
@@ -36,10 +42,15 @@
     "@vitejs/plugin-react": "^4.3.1",
     "@vitest/coverage-v8": "^2.0.5",
     "dependency-cruiser": "^16.3.0",
+    "eslint": "^10.7.0",
+    "eslint-config-prettier": "^10.1.8",
+    "eslint-plugin-react-hooks": "^7.1.1",
     "jsdom": "^29.1.1",
     "playwright": "^1.61.1",
+    "prettier": "^3.9.6",
     "sharp": "^0.35.3",
     "typescript": "^5.5.4",
+    "typescript-eslint": "^8.65.0",
     "vite": "^5.4.0",
     "vitest": "^2.0.5"
   }

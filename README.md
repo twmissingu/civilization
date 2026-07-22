@@ -29,7 +29,7 @@ The architecture cleanly separates a **deterministic headless logic layer** (pur
 - 🎨 105 AI-generated art assets, compressed 177MB → 0.5MB (99.5%) with WebP support
 - 🏆 5 victory types: science (space race), domination, score, religion, culture
 - 💾 Save/load (IndexedDB + JSON export)
-- 🧪 406 tests, coverage ≥88%, layering enforced by dependency-cruiser + purity checks + critical-paths gate + golden replay
+- 🧪 540 tests, coverage ≥91%, layering enforced by dependency-cruiser + purity checks + critical-paths gate + golden replay
 
 ## Quick Start
 
@@ -51,7 +51,7 @@ Open the URL, pick your civ, found a city, and play.
 
 ### Verify
 ```bash
-npm test               # 406 logic-layer + render tests
+npm test               # 540 logic-layer + render tests
 npm run test:coverage   # coverage ≥80%
 npm run check           # purity + depcruise + critical-paths + coverage + golden-replay gates
 npm run build           # production build
@@ -94,4 +94,4 @@ PRs welcome. Follow existing style (strict TS, immutable state transitions via `
 
 ## Status
 
-Phase 1 MVP complete (v0.4.0) — fog of war, rivers, full city management UI, asset compression pipeline, 6 Phase-2 system UI panels, victory progress, deterministic golden-replay verification, 406 tests. See `docs/ROADMAP.md`.
+Phase 1 MVP complete (v0.6.0) — fog of war, rivers, full city management UI, 11 civilizations, asset compression pipeline, 6 Phase-2 system UI panels, victory progress, wonder/combat effects, command registry pattern, deterministic golden-replay verification, 540 tests. See `docs/ROADMAP.md`.

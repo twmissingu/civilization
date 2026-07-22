@@ -1,19 +1,8 @@
 // 单位晋升系统测试
 import { describe, it, expect, beforeEach } from 'vitest';
-import { createInitialState } from '../../src/logic/state/createInitialState';
 import { applyCommand, currentPlayer } from '../../src/logic/state/commands';
 import { availablePromotions, applyPromotion, canLevelUp } from '../../src/logic/state/combat';
-import type { GameConfig, GameState } from '../../src/logic/state/types';
-
-function makeState(seed = 42): GameState {
-  const config: GameConfig = {
-    mapSize: { width: 16, height: 12 },
-    civChoices: [{ id: 'rome', isAI: false }, { id: 'greece', isAI: true }],
-    difficulty: 'prince',
-    maxTurns: 300,
-  };
-  return createInitialState(seed, config);
-}
+import { makeState } from '../scenarios/helpers';
 
 describe('单位晋升系统', () => {
   beforeEach(() => {

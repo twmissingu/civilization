@@ -1,6 +1,17 @@
 # ROADMAP
 
-## 已实现（v0.4.0 — Phase 1 上线收尾 + 打磨）
+## v0.6.0 — 代码质量重构 + 视觉特效
+
+- 命令注册表模式：commands.ts 委派给 commandRegistry.ts，25+ 命令 handler 分离为独立模块
+- PixiMap 渲染层拆分：五层渲染（terrain/dynamic/river/districts/fog）提取到 `src/render/pixi/layers.ts` + 视觉特效系统 `effects.ts`
+- 奇观建成金色光环动画 + 战斗爆炸粒子特效 + 镜头聚焦
+- 存档版本迁移链：MIGRATIONS 记录支持 v1→v2 自动升级
+- ESLint + Prettier 工具链集成 + Playwright E2E 框架
+- 类型安全修复：serialize.ts unsafe cast 消除、isDefeated/nextActivePlayer 去重
+- **540 测试**（+67），语句 91.34%，分支 85.04%
+- 验证：tsc 零错误，build 1.57s，门禁全绿
+
+## 已实现（v0.5.0 — Phase 1 上线收尾 + 打磨）
 
 ### 架构基线（第一批）
 - 统一 query API：渲染层通过 `query.ts` 访问逻辑层，禁止直接 import `commands.ts`

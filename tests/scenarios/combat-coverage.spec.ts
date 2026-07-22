@@ -1,20 +1,10 @@
 import { describe, it, expect } from 'vitest';
-import { createInitialState } from '../../src/logic/state/createInitialState';
 import { applyCommand } from '../../src/logic/state/commands';
 import { resolveAttack, resolveAttackCity, previewCombat, cityAt, isEnemyCity, availablePromotions, applyPromotion, canLevelUp } from '../../src/logic/state/combat';
 import { getTile } from '../../src/logic/state/mapgen';
 import { hexNeighbors } from '../../src/logic/hex';
-import type { GameState, GameConfig, UnitState, CityState } from '../../src/logic/state/types';
-
-function makeState(seed = 7): GameState {
-  const config: GameConfig = {
-    mapSize: { width: 16, height: 12 },
-    civChoices: [{ id: 'rome', isAI: false }, { id: 'greece', isAI: true }],
-    difficulty: 'prince',
-    maxTurns: 300,
-  };
-  return createInitialState(seed, config);
-}
+import type { GameState, UnitState, CityState } from '../../src/logic/state/types';
+import { makeState } from '../scenarios/helpers';
 
 function setWar(state: GameState): void {
   state.diplomacy['player-0']['player-1'] = 'war';

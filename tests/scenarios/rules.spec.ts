@@ -1,5 +1,4 @@
 import { describe, it, expect } from 'vitest';
-import { createInitialState } from '../../src/logic/state/createInitialState';
 import { applyCommand, findUnit, canExecute, currentPlayer } from '../../src/logic/state/commands';
 import { tileMoveCost } from '../../src/logic/state/unitMove';
 import { tileYield } from '../../src/logic/state/yield';import { districtAdjacencyBonus, canPlaceDistrict } from '../../src/logic/state/district';
@@ -9,36 +8,17 @@ import { triggerEureka, advanceResearch } from '../../src/logic/state/tech';
 import { techCost, TECHS } from '../../src/gamedata';
 import { getTile } from '../../src/logic/state/mapgen';
 import { hexNeighbors, hexEquals, hexInRange } from '../../src/logic/hex';
-import type { GameState, GameConfig, CityState } from '../../src/logic/state/types';
-
-function makeState(seed = 7): GameState {
-  const config: GameConfig = {
-    mapSize: { width: 16, height: 12 },
-    civChoices: [{ id: 'rome', isAI: false }, { id: 'greece', isAI: true }],
-    difficulty: 'prince',
-    maxTurns: 300,
-  };
-  return createInitialState(seed, config);
-}
-
-function foundCityP0(state: GameState): { state: GameState; city: CityState } {
-  const settler = state.players[0].units.find((u) => u.type === 'settler')!;
-  const { state: s2 } = applyCommand(state, { kind: 'foundCity', unitId: settler.id, name: 'Roma' });
-  return { state: s2, city: s2.players[0].cities[0] };
-}
-
-function findLandNeighbor(state: GameState, tile: { q: number; r: number }) {
-  return hexNeighbors(tile).find((n) => {
-    const t = getTile(state.map, n);
-    return t && t.terrain !== 'ocean' && t.terrain !== 'coast' && t.terrain !== 'mountain';
-  });
-}
+import type { CityState } from '../../src/logic/state/types';
+import { makeState, foundCityP0 } from '../scenarios/helpers';
 
 describe('单位移动与寻路', () => {
   it('moveUnit 命令移动单位到邻格', () => {
     const state = makeState();
     const warrior = state.players[0].units.find((u) => u.type === 'warrior')!;
-    const dest = findLandNeighbor(state, warrior.tile);
+    const dest = hexNeighbors(warrior.tile).find((n) => {
+      const t = getTile(state.map, n);
+      return t && t.terrain !== 'ocean' && t.terrain !== 'coast' && t.terrain !== 'mountain';
+    });
     if (!dest) return;
     const { state: s2 } = applyCommand(state, { kind: 'moveUnit', unitId: warrior.id, to: dest });
     const moved = findUnit(s2, warrior.id);
@@ -79,7 +59,7 @@ describe('地块产出', () => {
     for (const t of state.map.tiles) {
       if (t.feature && t.terrain !== 'ocean') { tile = t; break; }
     }
-    if (!tile) return;
+    if (!tile) throw new Error('Expected tile not found for test: ' + expect.getState().currentTestName);
     const base = tileYield(tile, true);
     expect(base).toBeDefined();
     const unworked = tileYield(tile, false);

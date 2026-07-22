@@ -1,6 +1,4 @@
 import { describe, it, expect } from 'vitest';
-import { createInitialState } from '../../src/logic/state/createInitialState';
-import { applyCommand } from '../../src/logic/state/commands';
 import {
   describeTile,
   describeTileShort,
@@ -12,26 +10,16 @@ import {
   resourceDescription,
   improvementDescription,
 } from '../../src/logic/state/describe';
-import type { GameConfig, GameState } from '../../src/logic/state/types';
-
-function makeState(): GameState {
-  const config: GameConfig = {
-    mapSize: { width: 16, height: 12 },
-    civChoices: [{ id: 'rome', isAI: false }, { id: 'greece', isAI: true }],
-    difficulty: 'prince',
-    maxTurns: 300,
-  };
-  return createInitialState(42, config);
-}
+import { makeState, foundCityP0 } from '../scenarios/helpers';
 
 describe('describeTile', () => {
   it('越界返回越界提示', () => {
-    const state = makeState();
+    const state = makeState(42);
     expect(describeTile(state, { q: 999, r: 0 })).toContain('越界');
   });
 
   it('含地形中文标签与坐标', () => {
-    const state = makeState();
+    const state = makeState(42);
     const tile = state.map.tiles[0];
     const desc = describeTile(state, tile.coord);
     expect(desc).toContain(`(${tile.coord.q},${tile.coord.r})`);
@@ -39,17 +27,14 @@ describe('describeTile', () => {
   });
 
   it('城市格描述含城市名', () => {
-    const state = makeState();
-    const settler = state.players[0].units.find((u) => u.type === 'settler')!;
-    const { state: s2 } = applyCommand(state, { kind: 'foundCity', unitId: settler.id, name: 'Roma' });
-    const city = s2.players[0].cities[0];
+    const { state: s2, city } = foundCityP0(makeState(42));
     const desc = describeTile(s2, city.tile);
     expect(desc).toContain('Roma');
     expect(desc).toContain('人口');
   });
 
   it('单位格描述含单位', () => {
-    const state = makeState();
+    const state = makeState(42);
     const unit = state.players[0].units.find((u) => u.type === 'settler')!;
     const desc = describeTile(state, unit.tile);
     expect(desc).toContain('开拓者');
@@ -59,12 +44,12 @@ describe('describeTile', () => {
 
 describe('describeTileShort', () => {
   it('越界返回越界提示', () => {
-    const state = makeState();
+    const state = makeState(42);
     expect(describeTileShort(state, { q: 999, r: 0 })).toContain('越界');
   });
 
   it('含地形、特征、资源与产出', () => {
-    const state = makeState();
+    const state = makeState(42);
     const tile = state.map.tiles.find((t) => t.feature && t.resource) ?? state.map.tiles[0];
     const desc = describeTileShort(state, tile.coord);
     expect(desc).toContain(terrainLabel(tile.terrain));
@@ -73,10 +58,7 @@ describe('describeTileShort', () => {
   });
 
   it('含城市与单位', () => {
-    const state = makeState();
-    const settler = state.players[0].units.find((u) => u.type === 'settler')!;
-    const { state: s2 } = applyCommand(state, { kind: 'foundCity', unitId: settler.id, name: 'Roma' });
-    const city = s2.players[0].cities[0];
+    const { state: s2, city } = foundCityP0(makeState(42));
     const desc = describeTileShort(s2, city.tile);
     expect(desc).toContain('Roma');
     expect(desc).toContain('单位:');

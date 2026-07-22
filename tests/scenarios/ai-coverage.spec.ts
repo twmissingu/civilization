@@ -1,21 +1,11 @@
 // AI 决策全面覆盖测试
 import { describe, it, expect } from 'vitest';
-import { createInitialState } from '../../src/logic/state/createInitialState';
 import { applyCommand } from '../../src/logic/state/commands';
 import { aiDecide, runAIUntilHuman } from '../../src/logic/ai';
 import { getTile } from '../../src/logic/state/mapgen';
 import { hexNeighbors } from '../../src/logic/hex';
-import type { GameConfig, GameState, CityState } from '../../src/logic/state/types';
-
-function makeState(seed = 42, difficulty: string = 'prince'): GameState {
-  const config: GameConfig = {
-    mapSize: { width: 16, height: 12 },
-    civChoices: [{ id: 'rome', isAI: false }, { id: 'greece', isAI: true }],
-    difficulty: difficulty as GameConfig['difficulty'],
-    maxTurns: 300,
-  };
-  return createInitialState(seed, config);
-}
+import type { CityState } from '../../src/logic/state/types';
+import { makeState } from '../scenarios/helpers';
 
 function setupCity(playerId: string, tile: { q: number; r: number }): CityState {
   return {
@@ -28,14 +18,14 @@ function setupCity(playerId: string, tile: { q: number; r: number }): CityState 
 
 describe('AI 全面覆盖', () => {
   it('settler 难度随机研究科技', () => {
-    const state = makeState(42, 'settler');
+    const state = makeState(42, { difficulty: 'settler' });
     state.currentPlayerIndex = 1;
     const cmds = aiDecide(state, state.players[1]);
     expect(cmds.some((c) => c.kind === 'research')).toBe(true);
   });
 
   it('AI 研究市政', () => {
-    const state = makeState(42, 'prince');
+    const state = makeState(42); // prince is default
     state.currentPlayerIndex = 1;
     const player = state.players[1];
     player.currentCivic = null;
@@ -44,7 +34,7 @@ describe('AI 全面覆盖', () => {
   });
 
   it('AI 已有研究时不重复研究', () => {
-    const state = makeState(42, 'prince');
+    const state = makeState(42); // prince is default
     state.currentPlayerIndex = 1;
     const player = state.players[1];
     player.currentResearch = { techId: 'pottery', progress: 10 };
@@ -53,7 +43,7 @@ describe('AI 全面覆盖', () => {
   });
 
   it('AI 信仰足够时选择万神殿', () => {
-    const state = makeState(42, 'prince');
+    const state = makeState(42); // prince is default
     state.currentPlayerIndex = 1;
     const player = state.players[1];
     player.faith = 50;
@@ -63,7 +53,7 @@ describe('AI 全面覆盖', () => {
   });
 
   it('AI 已有万神殿时不再选择', () => {
-    const state = makeState(42, 'prince');
+    const state = makeState(42); // prince is default
     state.currentPlayerIndex = 1;
     const player = state.players[1];
     player.faith = 50;
@@ -73,7 +63,7 @@ describe('AI 全面覆盖', () => {
   });
 
   it('AI hard 难度优先补军事', () => {
-    const state = makeState(42, 'emperor');
+    const state = makeState(42, { difficulty: 'emperor' });
     state.currentPlayerIndex = 1;
     const player = state.players[1];
     const spawn = player.units.find((u) => u.type === 'settler')!.tile;
@@ -88,7 +78,7 @@ describe('AI 全面覆盖', () => {
   });
 
   it('AI 建造者改良地块', () => {
-    const state = makeState(42, 'prince');
+    const state = makeState(42); // prince is default
     state.currentPlayerIndex = 1;
     const player = state.players[1];
     const spawn = player.units.find((u) => u.type === 'settler')!.tile;
@@ -111,7 +101,7 @@ describe('AI 全面覆盖', () => {
   });
 
   it('AI 建造者无法改良时探索移动', () => {
-    const state = makeState(42, 'prince');
+    const state = makeState(42); // prince is default
     state.currentPlayerIndex = 1;
     const player = state.players[1];
     const spawn = player.units.find((u) => u.type === 'settler')!.tile;
@@ -129,7 +119,7 @@ describe('AI 全面覆盖', () => {
   });
 
   it('AI 军事攻击邻敌', () => {
-    const state = makeState(42, 'prince');
+    const state = makeState(42); // prince is default
     state.currentPlayerIndex = 1;
     const player = state.players[1];
     state.diplomacy['player-0']['player-1'] = 'war';
@@ -142,7 +132,7 @@ describe('AI 全面覆盖', () => {
   });
 
   it('AI 军事无邻敌时探索移动', () => {
-    const state = makeState(42, 'prince');
+    const state = makeState(42); // prince is default
     state.currentPlayerIndex = 1;
     const player = state.players[1];
     state.diplomacy['player-0']['player-1'] = 'peace';
@@ -152,7 +142,7 @@ describe('AI 全面覆盖', () => {
   });
 
   it('runAIUntilHuman 完成 AI 回合', () => {
-    const state = makeState(42, 'prince');
+    const state = makeState(42); // prince is default
     let s = applyCommand(state, { kind: 'endTurn' }).state;
     s = runAIUntilHuman(s).state;
     // 结果应为人类玩家回合或游戏结束
@@ -162,16 +152,16 @@ describe('AI 全面覆盖', () => {
   });
 
   it('AI 命令以 endTurn 结尾', () => {
-    const state = makeState(42, 'settler');
+    const state = makeState(42, { difficulty: 'settler' });
     state.currentPlayerIndex = 1;
     const cmds = aiDecide(state, state.players[1]);
     expect(cmds[cmds.length - 1].kind).toBe('endTurn');
   });
 
   it('AI 不同难度产出不同命令序列', () => {
-    const state1 = makeState(42, 'settler');
+    const state1 = makeState(42, { difficulty: 'settler' });
     state1.currentPlayerIndex = 1;
-    const state2 = makeState(42, 'emperor');
+    const state2 = makeState(42, { difficulty: 'emperor' });
     state2.currentPlayerIndex = 1;
     const cmds1 = aiDecide(state1, state1.players[1]);
     const cmds2 = aiDecide(state2, state2.players[1]);
@@ -181,7 +171,7 @@ describe('AI 全面覆盖', () => {
   });
 
   it('AI 宗教单位有宗教时尝试传教', () => {
-    const state = makeState(42, 'emperor');
+    const state = makeState(42, { difficulty: 'emperor' });
     state.currentPlayerIndex = 1;
     const player = state.players[1];
     const spawn = player.units.find((u) => u.type === 'settler')!.tile;
@@ -204,7 +194,7 @@ describe('AI 全面覆盖', () => {
   });
 
   it('AI 商人有容量时尝试贸易', () => {
-    const state = makeState(42, 'emperor'); // 0 skipChance
+    const state = makeState(42, { difficulty: 'emperor' }); // 0 skipChance
     state.currentPlayerIndex = 1;
     const player = state.players[1];
     const spawn = player.units.find((u) => u.type === 'settler')!.tile;

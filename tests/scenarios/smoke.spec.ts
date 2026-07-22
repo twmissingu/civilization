@@ -1,25 +1,20 @@
 import { describe, it, expect } from 'vitest';
-import { createInitialState } from '../../src/logic/state/createInitialState';
 import { applyCommand, isDefeated, nextActivePlayer } from '../../src/logic/state/commands';
 import { runAIUntilHuman } from '../../src/logic/ai';
 import { playerScore } from '../../src/logic/state/victory';
-import type { GameConfig, GameState } from '../../src/logic/state/types';
+import { makeState, foundCityP0 } from '../scenarios/helpers';
 
-function makeState(seed = 42): GameState {
-  const config: GameConfig = {
-    mapSize: { width: 20, height: 14 },
-    civChoices: [{ id: 'rome', isAI: false }, { id: 'greece', isAI: true }, { id: 'china', isAI: true }],
-    difficulty: 'prince',
-    maxTurns: 60,
-  };
-  return createInitialState(seed, config);
-}
+const SMOKE_CONFIG = {
+  mapSize: { width: 20, height: 14 },
+  civChoices: [{ id: 'rome', isAI: false }, { id: 'greece', isAI: true }, { id: 'china', isAI: true }],
+  maxTurns: 60,
+};
 
 describe('端到端可玩冒烟', () => {
   it('完整对局多回合无崩溃，状态推进', () => {
-    let state = makeState(42);
-    const settler = state.players[0].units.find((u) => u.type === 'settler')!;
-    state = applyCommand(state, { kind: 'foundCity', unitId: settler.id, name: 'Roma' }).state;
+    let state = makeState(42, SMOKE_CONFIG);
+    const { state: s } = foundCityP0(state);
+    state = s;
     state = applyCommand(state, { kind: 'research', techId: 'pottery' }).state;
     for (let i = 0; i < 80 && state.status === 'active'; i++) {
       state = applyCommand(state, { kind: 'endTurn' }).state;
@@ -35,9 +30,9 @@ describe('端到端可玩冒烟', () => {
   });
 
   it('AI 在 40 回合内建立多城（扩张积极）', () => {
-    let state = makeState(42);
-    const settler = state.players[0].units.find((u) => u.type === 'settler')!;
-    state = applyCommand(state, { kind: 'foundCity', unitId: settler.id, name: 'Roma' }).state;
+    let state = makeState(42, SMOKE_CONFIG);
+    const { state: s } = foundCityP0(state);
+    state = s;
     for (let i = 0; i < 40 && state.status === 'active'; i++) {
       state = applyCommand(state, { kind: 'endTurn' }).state;
       state = runAIUntilHuman(state).state;
@@ -47,7 +42,7 @@ describe('端到端可玩冒烟', () => {
   });
 
   it('endTurn 跳过已失败玩家', () => {
-    const state = makeState(42);
+    const state = makeState(42, SMOKE_CONFIG);
     state.players[1].cities = [];
     state.players[1].units = [];
     const { state: s2 } = applyCommand(state, { kind: 'endTurn' });
@@ -55,7 +50,7 @@ describe('端到端可玩冒烟', () => {
   });
 
   it('isDefeated / nextActivePlayer 边界', () => {
-    const state = makeState(42);
+    const state = makeState(42, SMOKE_CONFIG);
     expect(isDefeated(state.players[0])).toBe(false);
     state.players[1].cities = [];
     state.players[1].units = [];
@@ -66,9 +61,9 @@ describe('端到端可玩冒烟', () => {
   });
 
   it('跑到回合上限触发分数胜利', () => {
-    let state = makeState(7);
-    const settler = state.players[0].units.find((u) => u.type === 'settler')!;
-    state = applyCommand(state, { kind: 'foundCity', unitId: settler.id, name: 'R' }).state;
+    let state = makeState(7, SMOKE_CONFIG);
+    const { state: s } = foundCityP0(state);
+    state = s;
     state = applyCommand(state, { kind: 'research', techId: 'mining' }).state;
     let guard = 0;
     while (state.status === 'active' && guard < 500) {

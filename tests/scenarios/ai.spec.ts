@@ -1,20 +1,10 @@
 import { describe, it, expect } from 'vitest';
-import { createInitialState } from '../../src/logic/state/createInitialState';
 import { applyCommand } from '../../src/logic/state/commands';
 import { aiDecide, runAIUntilHuman } from '../../src/logic/ai';
 import { getTile } from '../../src/logic/state/mapgen';
 import { hexNeighbors } from '../../src/logic/hex';
-import type { GameConfig, GameState, CityState } from '../../src/logic/state/types';
-
-function makeState(seed = 42): GameState {
-  const config: GameConfig = {
-    mapSize: { width: 16, height: 12 },
-    civChoices: [{ id: 'rome', isAI: false }, { id: 'greece', isAI: true }],
-    difficulty: 'prince',
-    maxTurns: 300,
-  };
-  return createInitialState(seed, config);
-}
+import type { CityState } from '../../src/logic/state/types';
+import { makeState } from '../scenarios/helpers';
 
 describe('AI 决策', () => {
   it('aiDecide 返回命令序列并以 endTurn 结尾', () => {

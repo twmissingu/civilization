@@ -183,7 +183,7 @@ function completeProduction(state: GameState, city: CityState, item: ProductionI
     owner.districtsBuilt += 1;
   } else if (item.kind === 'wonder') {
     city.wonders.push({ id: item.id, tile: item.tile ?? city.tile });
-    events.push({ kind: 'WonderBuilt', turn: state.turn, payload: { builderId: owner.id, wonderId: item.id } });
+    events.push({ kind: 'WonderBuilt', turn: state.turn, payload: { builderId: owner.id, wonderId: item.id, cityId: city.id } });
   } else if (item.kind === 'project') {
     // space project 推进
     if (!city.spaceProject) city.spaceProject = { stage: 1, progress: 0 };

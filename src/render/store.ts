@@ -128,7 +128,7 @@ export const useGame = create<GameStore>((set, get) => ({
     try {
       await saveGame(get().state);
       set({ message: '已保存' });
-    } catch (e) {
+    } catch (_e) {
       set({ message: '保存失败' });
     }
   },
@@ -137,7 +137,7 @@ export const useGame = create<GameStore>((set, get) => ({
       const s = await loadGame();
       if (s) set({ state: s, mapVersion: 0, eventLog: [], message: '已读取' });
       else set({ message: '无存档' });
-    } catch (e) {
+    } catch (_e) {
       set({ message: '读取失败' });
     }
   },

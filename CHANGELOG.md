@@ -5,6 +5,58 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [0.6.0] - 2026-07-22
+
+### Changed
+- 命令重构：commands.ts 委派给 commandRegistry 注册表，25+ 命令 handler 分离为独立模块
+- PixiMap 渲染层拆分：渲染逻辑提取到 `src/render/pixi/layers.ts`（五层渲染）+ `effects.ts`（特效系统）
+- 存档序列化：`deserialize` 参数类型改为 `SaveData | Record<string, unknown>`，消除 unsafe cast
+- 函数统一：`isDefeated`/`nextActivePlayer` 统一到 commands.ts，commandRegistry 引用而非重复定义
+- import 规范化：commands.ts 所有 import 集中到文件顶部
+
+### Fixed
+- 重复函数定义：commandRegistry 中 `isDefeated`/`nextActivePlayer` 与 commands.ts 重复，统一到 commands.ts
+- 存档类型安全：`as unknown as Record<string, unknown>` 替换为联合类型参数
+- Vim 交换文件清理：删除 `src/render/.!26555!Sidebar.tsx`，`.gitignore` 添加 `.*.swp`/`.*.swo`/`.!*`
+- 缺失末尾换行：commands.ts + PixiMap.tsx 补 trailing newline
+
+### Added
+- 命令注册表模式：`registerCommand`/`getCommandHandler`，支持动态注册
+- 视觉特效系统：奇观建成金色光环 + 战斗爆炸粒子 + 镜头聚焦动画
+- 存档版本迁移链：`MIGRATIONS` 记录支持 v1→v2 自动升级
+- ESLint + Prettier 工具链：`npm run lint` / `npm run format`
+- Playwright E2E 测试框架：`npm run test:e2e`
+- 540 测试（+67），47 测试文件
+
+## [0.5.0] - 2026-07-21
+
+### Added
+
+#### 视觉特效系统
+- 奇观建成金色光环动画：先放大再缩小，持续约 1 秒
+- 战斗爆炸粒子特效：红色闪光扩散消失，持续约 0.5 秒
+- 镜头聚焦事件：奇观建成自动聚焦城市，战斗自动聚焦战场
+- 受伤单位红色闪烁环：HP < 100 时单位环转为红色脉冲
+
+#### 存档与恢复
+- 版本迁移链：`MIGRATIONS` 记录支持 v1→v2 自动升级，可扩展
+- `CURRENT_SAVE_VERSION` 导出，序列化使用最新版本号
+- 迁移测试覆盖：版本降级、round-trip 一致性、版本号验证
+
+#### 测试覆盖
+- 473 测试（+20），47 测试文件
+- 语句覆盖率 91.34%，分支覆盖率 85.04%
+- 新增：WonderBuilt 事件测试、productionCost 全路径、hasAnySuzerain、AI 难度加成、GOVERNMENT_REF、tradeRoute 直接构造测试、processTradeRoutes 全路径、save migration 测试
+
+### Changed
+- `WonderBuilt` 事件 payload 新增 `cityId` 字段，支持镜头聚焦
+- PixiMap 事件处理提取为 `processEvents()` 函数，遍历所有事件而非仅最后一个
+- `Sidebar.tsx` 移除未使用的 `useState`/`useEffect` 导入
+
+### Fixed
+- 存档读取：`as SaveData` → `as unknown as Record<string, unknown>` 类型安全转换
+- 游戏结束状态：`state.status === 'finished'` 时 `applyCommand` 直接返回，不执行校验
+
 ## [0.4.0] - 2026-07-20
 
 ### Added
